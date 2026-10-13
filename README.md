@@ -2,6 +2,8 @@
 
 [![Verification and supply-chain audit](https://github.com/theraghavraman/codeproof/actions/workflows/checks.yml/badge.svg)](https://github.com/theraghavraman/codeproof/actions/workflows/checks.yml) [![Deploy to GitHub Pages](https://github.com/theraghavraman/codeproof/actions/workflows/pages.yml/badge.svg)](https://github.com/theraghavraman/codeproof/actions/workflows/pages.yml)
 
+> **[Open the live CodeProof website](https://theraghavraman.github.io/codeproof/)** — use this link to run the app. The `docs/index.html` link below is the source file in GitHub, not the interactive website.
+
 CodeProof is a static, local-first code inspection and verification workbench designed for GitHub Pages. It requires no npm install, backend, account system, secrets, or hosted database. JavaScript and TypeScript assets are reconstructed from the tracked, verified compiler parts during CI. Python grammar validation and experimental Python execution download the pinned Pyodide runtime on demand.
 
 **Application entry point:** [docs/index.html](docs/index.html)  
