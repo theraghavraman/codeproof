@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "project": {"name":"CodeProof","version":"1.0.0","spdxLicenseId":"MIT","evidence":"LICENSE"},
+  "reviewedOn": "2026-10-13",
+  "method": "Manual mapping from bundled upstream licence notices and version markers; SHA-256 hashes are generated from repository files. Pyodide is a pinned external runtime, not a bundled file.",
+  "components": [
+    {
+      "name":"acorn","version":"8.15.0","spdxLicenseId":"MIT",
+      "resolution":"Resolved from bundled licence text or version-pinned upstream project documentation.",
+      "distribution":"bundled","evidence":["docs/vendor/LICENSE.acorn.txt"],
+      "files":["docs/assets/acorn.mjs","docs/integrations/acorn.mjs"],
+      "sha256":"b4c8c70200e72bae33cf1085e0ecb1e792c1b6924ed50cab817caf14f51bb249",
+      "upstream":"https://github.com/acornjs/acorn"
+    },
+    {
+      "name":"typescript","version":"5.8.3","spdxLicenseId":"Apache-2.0",
+      "resolution":"Resolved from bundled licence text or version-pinned upstream project documentation.",
+      "distribution":"bundled","evidence":["docs/vendor/LICENSE.typescript.txt"],
+      "files":["docs/vendor/typescript.js","docs/integrations/typescript.cjs"],
+      "sha256":"dd17428736a07e1db1a138d8a14295ddb2699ba780ee15038acdd2c6da5373a0",
+      "upstream":"https://github.com/microsoft/TypeScript"
+    },
+    {
+      "name":"jszip","version":"3.10.1","spdxLicenseId":"MIT",
+      "resolution":"Selected MIT option from upstream dual licensing (MIT OR GPL-3.0-only).",
+      "distribution":"bundled","evidence":["docs/vendor/LICENSE.jszip.txt"],
+      "files":["docs/vendor/jszip.min.js"],
+      "sha256":"acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e",
+      "upstream":"https://github.com/Stuk/jszip"
+    },
+    {
+      "name":"pyodide","version":"0.28.3","spdxLicenseId":"MPL-2.0",
+      "resolution":"Resolved from bundled licence text or version-pinned upstream project documentation.",
+      "distribution":"external-runtime","evidence":["docs/assets/sandbox.mjs"],"files":[],
+      "upstream":"https://pyodide.org/en/0.28.3/",
+      "licenseUrl":"https://github.com/pyodide/pyodide/blob/0.28.3/LICENSE"
+    }
+  ],
+  "limitations": [
+    "This inventory covers direct application runtime components, not every transitive package inside the remote Pyodide distribution.",
+    "Version strings and bundled asset hashes are checked automatically; legal interpretation and redistribution decisions still require maintainer review."
+  ]
+}

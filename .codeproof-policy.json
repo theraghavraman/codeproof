@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "maxFiles": 1000,
+  "maxFileBytes": 250000,
+  "failOnSeverity": "critical",
+  "failOnParseError": true,
+  "ignorePaths": [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    "coverage",
+    ".next",
+    "vendor",
+    "__pycache__",
+    ".venv",
+    ".codeproof"
+  ]
+}

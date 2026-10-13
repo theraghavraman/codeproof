@@ -1,0 +1,7 @@
+codeproof-report.json
+*.log
+.DS_Store
+node_modules/
+# Reconstructed from the tracked, checksum-verified upstream source parts by CI.
+docs/vendor/typescript.js
+docs/integrations/typescript.cjs

@@ -1,0 +1,77 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:dc0d5bcc-b7ad-45bf-a3b1-7a93e4aa8494",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-10-13T09:50:49.147Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "CodeProof SBOM generator",
+          "version": "1.0.0"
+        }
+      ]
+    },
+    "component": {
+      "type": "application",
+      "name": "CodeProof",
+      "version": "1.0.0",
+      "bom-ref": "pkg:github/theraghavraman/codeproof@1.0.0",
+      "description": "Browser-first code inspection and verification workbench.",
+      "purl": "pkg:github/theraghavraman/codeproof@1.0.0",
+      "licenses": [{"license":{"id":"MIT"}}],
+      "externalReferences": [
+        {"type":"website","url":"https://github.com/theraghavraman/codeproof"},
+        {"type":"vcs","url":"https://github.com/theraghavraman/codeproof"}
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library", "name": "acorn", "version": "8.15.0",
+      "purl": "pkg:npm/acorn@8.15.0", "bom-ref": "pkg:npm/acorn@8.15.0",
+      "description": "JavaScript parser bundled for source inspection.",
+      "licenses": [{"license":{"id":"MIT"}}],
+      "externalReferences": [{"type":"website","url":"https://github.com/acornjs/acorn"}],
+      "hashes": [{"alg":"SHA-256","content":"b4c8c70200e72bae33cf1085e0ecb1e792c1b6924ed50cab817caf14f51bb249"}],
+      "evidence": {"occurrences":[{"location":"docs/assets/acorn.mjs"},{"location":"docs/integrations/acorn.mjs"}]}
+    },
+    {
+      "type": "library", "name": "typescript", "version": "5.8.3",
+      "purl": "pkg:npm/typescript@5.8.3", "bom-ref": "pkg:npm/typescript@5.8.3",
+      "description": "TypeScript compiler used for static inspection.",
+      "licenses": [{"license":{"id":"Apache-2.0"}}],
+      "externalReferences": [{"type":"website","url":"https://github.com/microsoft/TypeScript"}],
+      "hashes": [{"alg":"SHA-256","content":"dd17428736a07e1db1a138d8a14295ddb2699ba780ee15038acdd2c6da5373a0"}],
+      "evidence": {"occurrences":[{"location":"docs/vendor/typescript.js"},{"location":"docs/integrations/typescript.cjs"}]}
+    },
+    {
+      "type": "library", "name": "jszip", "version": "3.10.1",
+      "purl": "pkg:npm/jszip@3.10.1", "bom-ref": "pkg:npm/jszip@3.10.1",
+      "description": "ZIP archive import/export in the browser; MIT option selected from upstream dual licensing.",
+      "licenses": [{"license":{"id":"MIT"}}],
+      "externalReferences": [{"type":"website","url":"https://github.com/Stuk/jszip"}],
+      "hashes": [{"alg":"SHA-256","content":"acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e"}],
+      "evidence": {"occurrences":[{"location":"docs/vendor/jszip.min.js"}]}
+    },
+    {
+      "type": "library", "name": "pyodide", "version": "0.28.3",
+      "purl": "pkg:npm/pyodide@0.28.3", "bom-ref": "pkg:npm/pyodide@0.28.3",
+      "description": "Pinned external Python-in-WebAssembly runtime downloaded on demand from jsDelivr; not bundled in the repository.",
+      "licenses": [{"license":{"id":"MPL-2.0"}}],
+      "externalReferences": [
+        {"type":"website","url":"https://pyodide.org/en/0.28.3/"},
+        {"type":"license","url":"https://github.com/pyodide/pyodide/blob/0.28.3/LICENSE"}
+      ]
+    }
+  ],
+  "dependencies": [
+    {"ref":"pkg:github/theraghavraman/codeproof@1.0.0","dependsOn":["pkg:npm/acorn@8.15.0","pkg:npm/typescript@5.8.3","pkg:npm/jszip@3.10.1","pkg:npm/pyodide@0.28.3"]},
+    {"ref":"pkg:npm/acorn@8.15.0","dependsOn":[]},
+    {"ref":"pkg:npm/typescript@5.8.3","dependsOn":[]},
+    {"ref":"pkg:npm/jszip@3.10.1","dependsOn":[]},
+    {"ref":"pkg:npm/pyodide@0.28.3","dependsOn":[]}
+  ]
+}

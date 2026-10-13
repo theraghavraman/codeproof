@@ -1,13 +1,13 @@
 cff-version: 1.2.0
-message: "If you use or cite CodeProof, please cite the repository and the specific release or commit you used."
+message: "If you use CodeProof in research or software development, please cite this release."
+type: software
 title: "CodeProof: Browser-First Code Verification Lab"
 authors:
   - family-names: Raman
     given-names: Raghav
     orcid: "https://orcid.org/0009-0006-6026-0674"
-type: software
-repository-code: "https://github.com/theraghavraman/codeproof"
-url: "https://github.com/theraghavraman/codeproof"
+url: https://github.com/theraghavraman/codeproof
+repository-code: https://github.com/theraghavraman/codeproof
 license: MIT
 keywords:
   - static analysis

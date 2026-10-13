@@ -1,0 +1,61 @@
+name: Build and attest CodeProof release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: codeproof-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Restore verified TypeScript compiler assets
+        run: node scripts/restore-vendor.mjs
+      - name: Run tests
+        run: node --test tests/*.test.mjs
+      - name: Verify repository static audit baseline
+        shell: bash
+        run: |
+          set +e
+          node docs/integrations/cli.mjs
+          status=$?
+          set -e
+          if [ "$status" -gt 1 ]; then exit "$status"; fi
+          node scripts/check-static-baseline.mjs
+      - name: Verify SBOM and licence inventory
+        run: |
+          node scripts/generate-sbom.mjs --check
+          node scripts/audit-supply-chain.mjs
+      - name: Assemble release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          git archive --format=zip --prefix="CodeProof-${GITHUB_REF_NAME}/" HEAD > "release-assets/CodeProof-${GITHUB_REF_NAME}.zip"
+          cp sbom.cdx.json licenses-resolved.json LICENSE CITATION.cff docs/NOTICE.md release-assets/
+          (cd release-assets && sha256sum * > SHA256SUMS.txt)
+      - name: Attest source archive provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: release-assets/CodeProof-${{ github.ref_name }}.zip
+      - name: Publish GitHub release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release-assets/* --title "CodeProof $GITHUB_REF_NAME" --generate-notes
