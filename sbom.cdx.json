@@ -17,61 +17,210 @@
     "component": {
       "type": "application",
       "name": "CodeProof",
-      "version": "1.0.0",
-      "bom-ref": "pkg:github/theraghavraman/codeproof@1.0.0",
-      "description": "Browser-first code inspection and verification workbench.",
-      "purl": "pkg:github/theraghavraman/codeproof@1.0.0",
-      "licenses": [{"license":{"id":"MIT"}}],
+      "version": "2.0.0",
+      "bom-ref": "pkg:github/theraghavraman/codeproof@2.0.0",
+      "description": "Browser-only code verification: per-file and whole-project analysis, sandboxed tests, coverage and evidence reports.",
+      "purl": "pkg:github/theraghavraman/codeproof@2.0.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
       "externalReferences": [
-        {"type":"website","url":"https://github.com/theraghavraman/codeproof"},
-        {"type":"vcs","url":"https://github.com/theraghavraman/codeproof"}
+        {
+          "type": "website",
+          "url": "https://github.com/theraghavraman/codeproof"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/theraghavraman/codeproof"
+        }
       ]
     }
   },
   "components": [
     {
-      "type": "library", "name": "acorn", "version": "8.15.0",
-      "purl": "pkg:npm/acorn@8.15.0", "bom-ref": "pkg:npm/acorn@8.15.0",
+      "type": "library",
+      "name": "acorn",
+      "version": "8.15.0",
+      "purl": "pkg:npm/acorn@8.15.0",
+      "bom-ref": "pkg:npm/acorn@8.15.0",
       "description": "JavaScript parser bundled for source inspection.",
-      "licenses": [{"license":{"id":"MIT"}}],
-      "externalReferences": [{"type":"website","url":"https://github.com/acornjs/acorn"}],
-      "hashes": [{"alg":"SHA-256","content":"b4c8c70200e72bae33cf1085e0ecb1e792c1b6924ed50cab817caf14f51bb249"}],
-      "evidence": {"occurrences":[{"location":"docs/assets/acorn.mjs"},{"location":"docs/integrations/acorn.mjs"}]}
-    },
-    {
-      "type": "library", "name": "typescript", "version": "5.8.3",
-      "purl": "pkg:npm/typescript@5.8.3", "bom-ref": "pkg:npm/typescript@5.8.3",
-      "description": "TypeScript compiler used for static inspection.",
-      "licenses": [{"license":{"id":"Apache-2.0"}}],
-      "externalReferences": [{"type":"website","url":"https://github.com/microsoft/TypeScript"}],
-      "hashes": [{"alg":"SHA-256","content":"dd17428736a07e1db1a138d8a14295ddb2699ba780ee15038acdd2c6da5373a0"}],
-      "evidence": {"occurrences":[{"location":"docs/vendor/typescript.js"},{"location":"docs/integrations/typescript.cjs"}]}
-    },
-    {
-      "type": "library", "name": "jszip", "version": "3.10.1",
-      "purl": "pkg:npm/jszip@3.10.1", "bom-ref": "pkg:npm/jszip@3.10.1",
-      "description": "ZIP archive import/export in the browser; MIT option selected from upstream dual licensing.",
-      "licenses": [{"license":{"id":"MIT"}}],
-      "externalReferences": [{"type":"website","url":"https://github.com/Stuk/jszip"}],
-      "hashes": [{"alg":"SHA-256","content":"acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e"}],
-      "evidence": {"occurrences":[{"location":"docs/vendor/jszip.min.js"}]}
-    },
-    {
-      "type": "library", "name": "pyodide", "version": "0.28.3",
-      "purl": "pkg:npm/pyodide@0.28.3", "bom-ref": "pkg:npm/pyodide@0.28.3",
-      "description": "Pinned external Python-in-WebAssembly runtime downloaded on demand from jsDelivr; not bundled in the repository.",
-      "licenses": [{"license":{"id":"MPL-2.0"}}],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
       "externalReferences": [
-        {"type":"website","url":"https://pyodide.org/en/0.28.3/"},
-        {"type":"license","url":"https://github.com/pyodide/pyodide/blob/0.28.3/LICENSE"}
-      ]
+        {
+          "type": "website",
+          "url": "https://github.com/acornjs/acorn"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b4c8c70200e72bae33cf1085e0ecb1e792c1b6924ed50cab817caf14f51bb249"
+        }
+      ],
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "docs/assets/acorn.mjs"
+          }
+        ]
+      }
+    },
+    {
+      "type": "library",
+      "name": "typescript",
+      "version": "5.8.3",
+      "purl": "pkg:npm/typescript@5.8.3",
+      "bom-ref": "pkg:npm/typescript@5.8.3",
+      "description": "TypeScript compiler and standard library declarations used for parsing, whole-program type checking and transpilation in the analysis worker.",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/microsoft/TypeScript"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "dd17428736a07e1db1a138d8a14295ddb2699ba780ee15038acdd2c6da5373a0"
+        }
+      ],
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "docs/vendor/typescript.js"
+          },
+          {
+            "location": "docs/integrations/typescript.cjs"
+          },
+          {
+            "location": "docs/vendor/typescript.mjs"
+          },
+          {
+            "location": "docs/vendor/typescript-lib/"
+          }
+        ]
+      }
+    },
+    {
+      "type": "library",
+      "name": "jszip",
+      "version": "3.10.1",
+      "purl": "pkg:npm/jszip@3.10.1",
+      "bom-ref": "pkg:npm/jszip@3.10.1",
+      "description": "ZIP archive import/export in the browser; MIT option selected from upstream dual licensing.",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/Stuk/jszip"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e"
+        }
+      ],
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "docs/vendor/jszip.min.js"
+          }
+        ]
+      }
+    },
+    {
+      "type": "library",
+      "name": "pyodide",
+      "version": "0.28.3",
+      "purl": "pkg:npm/pyodide@0.28.3",
+      "bom-ref": "pkg:npm/pyodide@0.28.3",
+      "description": "Python 3.13 (CPython) compiled to WebAssembly. Restored at build time from the pinned npm tarball, served from this site, and SHA-256 verified in the browser before it runs inside the sandbox.",
+      "licenses": [
+        {
+          "license": {
+            "id": "MPL-2.0"
+          }
+        },
+        {
+          "license": {
+            "id": "PSF-2.0"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pyodide.org/en/0.28.3/"
+        },
+        {
+          "type": "license",
+          "url": "https://github.com/pyodide/pyodide/blob/0.28.3/LICENSE"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "aed0acc93539e68346a4bcd256e01de7966faee243117f28ea479275628df633de05548d9729da2851bb791aa4888814ee2d8ce8712062d9b46ad084417deee0"
+        }
+      ],
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "docs/vendor/pyodide/"
+          }
+        ]
+      }
     }
   ],
   "dependencies": [
-    {"ref":"pkg:github/theraghavraman/codeproof@1.0.0","dependsOn":["pkg:npm/acorn@8.15.0","pkg:npm/typescript@5.8.3","pkg:npm/jszip@3.10.1","pkg:npm/pyodide@0.28.3"]},
-    {"ref":"pkg:npm/acorn@8.15.0","dependsOn":[]},
-    {"ref":"pkg:npm/typescript@5.8.3","dependsOn":[]},
-    {"ref":"pkg:npm/jszip@3.10.1","dependsOn":[]},
-    {"ref":"pkg:npm/pyodide@0.28.3","dependsOn":[]}
+    {
+      "ref": "pkg:github/theraghavraman/codeproof@2.0.0",
+      "dependsOn": [
+        "pkg:npm/acorn@8.15.0",
+        "pkg:npm/typescript@5.8.3",
+        "pkg:npm/jszip@3.10.1",
+        "pkg:npm/pyodide@0.28.3"
+      ]
+    },
+    {
+      "ref": "pkg:npm/acorn@8.15.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:npm/typescript@5.8.3",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:npm/jszip@3.10.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:npm/pyodide@0.28.3",
+      "dependsOn": []
+    }
   ]
 }

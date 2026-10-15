@@ -1,43 +1,88 @@
 {
   "schemaVersion": 1,
-  "project": {"name":"CodeProof","version":"1.0.0","spdxLicenseId":"MIT","evidence":"LICENSE"},
+  "project": {
+    "name": "CodeProof",
+    "version": "2.0.0",
+    "spdxLicenseId": "MIT",
+    "evidence": "LICENSE"
+  },
   "reviewedOn": "2026-10-13",
-  "method": "Manual mapping from bundled upstream licence notices and version markers; SHA-256 hashes are generated from repository files. Pyodide is a pinned external runtime, not a bundled file.",
+  "method": "Manual mapping from bundled upstream licence notices and version markers; SHA-256 hashes are generated from repository files. TypeScript lib declarations and the Pyodide runtime are restored at build time from npm tarballs pinned by sha512 integrity, with per-file SHA-256 digests in scripts/pinned-assets.json.",
   "components": [
     {
-      "name":"acorn","version":"8.15.0","spdxLicenseId":"MIT",
-      "resolution":"Resolved from bundled licence text or version-pinned upstream project documentation.",
-      "distribution":"bundled","evidence":["docs/vendor/LICENSE.acorn.txt"],
-      "files":["docs/assets/acorn.mjs","docs/integrations/acorn.mjs"],
-      "sha256":"b4c8c70200e72bae33cf1085e0ecb1e792c1b6924ed50cab817caf14f51bb249",
-      "upstream":"https://github.com/acornjs/acorn"
+      "name": "acorn",
+      "version": "8.15.0",
+      "spdxLicenseId": "MIT",
+      "resolution": "Resolved from bundled licence text or version-pinned upstream project documentation.",
+      "distribution": "bundled",
+      "evidence": [
+        "docs/vendor/LICENSE.acorn.txt"
+      ],
+      "files": [
+        "docs/assets/acorn.mjs"
+      ],
+      "sha256": "b4c8c70200e72bae33cf1085e0ecb1e792c1b6924ed50cab817caf14f51bb249",
+      "upstream": "https://github.com/acornjs/acorn"
     },
     {
-      "name":"typescript","version":"5.8.3","spdxLicenseId":"Apache-2.0",
-      "resolution":"Resolved from bundled licence text or version-pinned upstream project documentation.",
-      "distribution":"bundled","evidence":["docs/vendor/LICENSE.typescript.txt"],
-      "files":["docs/vendor/typescript.js","docs/integrations/typescript.cjs"],
-      "sha256":"dd17428736a07e1db1a138d8a14295ddb2699ba780ee15038acdd2c6da5373a0",
-      "upstream":"https://github.com/microsoft/TypeScript"
+      "name": "typescript",
+      "version": "5.8.3",
+      "spdxLicenseId": "Apache-2.0",
+      "resolution": "Resolved from bundled licence text. The compiler is reconstructed from tracked, checksummed parts; lib.*.d.ts declarations are restored from the same npm release (typescript-5.8.3.tgz, sha512 pinned) and cross-checked against the compiler hash.",
+      "distribution": "bundled",
+      "evidence": [
+        "docs/vendor/LICENSE.typescript.txt",
+        "scripts/pinned-assets.json"
+      ],
+      "files": [
+        "docs/vendor/typescript.js",
+        "docs/integrations/typescript.cjs"
+      ],
+      "sha256": "dd17428736a07e1db1a138d8a14295ddb2699ba780ee15038acdd2c6da5373a0",
+      "upstream": "https://github.com/microsoft/TypeScript",
+      "derivedFiles": [
+        "docs/vendor/typescript.mjs (verified compiler bytes + 'export default ts')",
+        "docs/vendor/typescript-lib/*.d.ts (97 files, SHA-256 pinned in scripts/pinned-assets.json)"
+      ]
     },
     {
-      "name":"jszip","version":"3.10.1","spdxLicenseId":"MIT",
-      "resolution":"Selected MIT option from upstream dual licensing (MIT OR GPL-3.0-only).",
-      "distribution":"bundled","evidence":["docs/vendor/LICENSE.jszip.txt"],
-      "files":["docs/vendor/jszip.min.js"],
-      "sha256":"acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e",
-      "upstream":"https://github.com/Stuk/jszip"
+      "name": "jszip",
+      "version": "3.10.1",
+      "spdxLicenseId": "MIT",
+      "resolution": "Selected MIT option from upstream dual licensing (MIT OR GPL-3.0-only).",
+      "distribution": "bundled",
+      "evidence": [
+        "docs/vendor/LICENSE.jszip.txt"
+      ],
+      "files": [
+        "docs/vendor/jszip.min.js"
+      ],
+      "sha256": "acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e",
+      "upstream": "https://github.com/Stuk/jszip"
     },
     {
-      "name":"pyodide","version":"0.28.3","spdxLicenseId":"MPL-2.0",
-      "resolution":"Resolved from bundled licence text or version-pinned upstream project documentation.",
-      "distribution":"external-runtime","evidence":["docs/assets/sandbox.mjs"],"files":[],
-      "upstream":"https://pyodide.org/en/0.28.3/",
-      "licenseUrl":"https://github.com/pyodide/pyodide/blob/0.28.3/LICENSE"
+      "name": "pyodide",
+      "version": "0.28.3",
+      "spdxLicenseId": "MPL-2.0",
+      "resolution": "Pyodide core files (pyodide.js, pyodide.asm.js, pyodide.asm.wasm, python_stdlib.zip, pyodide-lock.json) are restored from pyodide-0.28.3.tgz (sha512 pinned), verified per file, deployed with the site, and verified again in the browser before use. Nothing is loaded from a CDN.",
+      "distribution": "restored-at-build",
+      "evidence": [
+        "scripts/pinned-assets.json",
+        "docs/assets/runtime/pinned-pyodide.mjs"
+      ],
+      "files": [],
+      "upstream": "https://pyodide.org/en/0.28.3/",
+      "licenseUrl": "https://github.com/pyodide/pyodide/blob/0.28.3/LICENSE",
+      "additionalLicenses": [
+        {
+          "spdxLicenseId": "PSF-2.0",
+          "scope": "CPython 3.13 interpreter and standard library inside pyodide.asm.wasm and python_stdlib.zip"
+        }
+      ]
     }
   ],
   "limitations": [
-    "This inventory covers direct application runtime components, not every transitive package inside the remote Pyodide distribution.",
+    "This inventory covers direct application runtime components. Pyodide's bundled CPython standard library is recorded as an additional licence of the pyodide component, not as separate components.",
     "Version strings and bundled asset hashes are checked automatically; legal interpretation and redistribution decisions still require maintainer review."
   ]
 }
