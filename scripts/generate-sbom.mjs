@@ -10,7 +10,7 @@ if (bom.bomFormat !== 'CycloneDX' || bom.specVersion !== '1.6') throw Error('Exp
 if (!Array.isArray(manifest.components) || manifest.components.length !== 4 || !Array.isArray(bom.components) || bom.components.length !== 4) throw Error('Expected exactly four reviewed direct runtime components.');
 const mismatches = [];
 for (const component of manifest.components) {
-  if (!['MIT','Apache-2.0','MPL-2.0'].includes(component.spdxLicenseId)) mismatches.push(`Unapproved SPDX license for ${component.name}`);
+  if (!['MIT','Apache-2.0','MPL-2.0','PSF-2.0'].includes(component.spdxLicenseId)) mismatches.push(`Unapproved SPDX license for ${component.name}`);
   for (const evidence of component.evidence ?? []) {
     try { await readFile(evidence); } catch { mismatches.push(`Missing evidence: ${evidence}`); }
   }
@@ -29,11 +29,18 @@ for (const component of manifest.components) {
   const entry = bom.components.find(item => item.name === component.name);
   if (!entry || entry.licenses?.[0]?.license?.id !== component.spdxLicenseId) mismatches.push(`SBOM/license mismatch: ${component.name}`);
 }
-const source = await readFile('docs/assets/sandbox.mjs','utf8');
-if (!/pyodide\/v0\.28\.3\/full\//.test(source)) mismatches.push('Pyodide runtime pin changed without review.');
+const pinned = await readJson('scripts/pinned-assets.json');
+const browserPins = await readFile('docs/assets/runtime/pinned-pyodide.mjs','utf8');
+for (const [name, pkg] of Object.entries(pinned.packages)) {
+  const component = manifest.components.find(c => c.name === name);
+  if (!component || component.version !== pkg.version) mismatches.push(`Pinned ${name}@${pkg.version} is not the reviewed licence-manifest version.`);
+}
+const pyIntegrity = Buffer.from(pinned.packages.pyodide.integrity.split('-')[1], 'base64').toString('hex');
+if (bom.components.find(c => c.name === 'pyodide')?.hashes?.[0]?.content !== pyIntegrity) mismatches.push('SBOM Pyodide SHA-512 differs from the pinned tarball integrity.');
+for (const digest of Object.values(pinned.packages.pyodide.extract.files)) if (!browserPins.includes(digest)) mismatches.push(`Browser-side Pyodide digest list is missing ${digest}.`);
 if (mismatches.length) throw Error('Supply-chain check failed:\n- '+mismatches.join('\n- '));
 if (check) {
-  console.log('Supply-chain inventory is current: direct asset hashes, four component versions, SPDX IDs and evidence are verified.');
+  console.log('Supply-chain inventory is current: direct asset hashes, four component versions, SPDX IDs, evidence and pinned runtime digests are verified.');
 } else {
   bom.serialNumber = `urn:uuid:${randomUUID()}`;
   bom.metadata.timestamp = new Date().toISOString();
