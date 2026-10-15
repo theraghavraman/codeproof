@@ -1,24 +1,57 @@
 import {APP_VERSION,defaultPolicy,sampleFiles,sampleTests,languageFromPath,acceptedPath,analyzeWorkspace,generateBoundaryTests,findPatches,applyPatch,summarize,dependencyEdges,failsPolicy,makeReceipt,receiptMarkdown,validateWorkspace} from './core.mjs';
-import {LocalTestRunner} from './sandbox.mjs';
+import {LocalTestRunner,ProjectRuntime} from './sandbox.mjs';
+import {icon,h,fmt,badge,btn} from './ui/kit.mjs';
+import {scanView,authorshipView,SCAN_TABS,verificationBadge} from './ui/scan-views.mjs';
+import {buildReport,reportMarkdown,reportSarif} from './engine/report.mjs';
+import {normalizePath} from './engine/paths.mjs';
+import {detectLanguage} from './engine/detect.mjs';
 
 const root=document.querySelector('#app');
-const iconPaths={shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',code:'<path d="m8 17-5-5 5-5m8 0 5 5-5 5M14 4l-4 16"/>',play:'<path d="m8 5 12 7-12 7V5Z"/>',flask:'<path d="M9 3h6m-5 0v7l-6 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-6-9V3M7 16h10"/>',file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8m-8 4h8"/>',wand:'<path d="m3 21 9-9m2-9 1.6 3.4L19 8l-3.4 1.6L14 13l-1.6-3.4L9 8l3.4-1.6L14 3Zm6 11 .9 2.1L23 17l-2.1.9L20 20l-.9-2.1L17 17l2.1-.9L20 14Z"/>',layers:'<path d="m12 2 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/>',users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m9-18a4 4 0 1 1-8 0m13 18v-2a4 4 0 0 0-3-3.87m1-11.26a4 4 0 0 1 0 7.75"/><circle cx="9" cy="7" r="4"/>',arrow:'<path d="M5 12h14m-7-7 7 7-7 7"/>',upload:'<path d="M12 16V3m-5 5 5-5 5 5M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>',download:'<path d="M12 3v12m-5-5 5 5 5-5M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>',check:'<path d="m5 12 4 4L19 6"/>',alert:'<path d="M10.3 3.9 2.4 17.6A2 2 0 0 0 4.1 21h15.8a2 2 0 0 0 1.7-3.4L13.7 3.9a2 2 0 0 0-3.4 0ZM12 9v4m0 4h.01"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',terminal:'<rect x="2" y="3" width="20" height="18" rx="2"/><path d="m6 9 3 3-3 3m6 0h5"/>',bug:'<path d="M8 7V5a4 4 0 0 1 8 0v2m-10 4H3m3 5H3m18-5h-3m3 5h-3M7 7h10v10a5 5 0 0 1-10 0V7Zm5 0v14M3 5l4 3m14-3-4 3"/>',search:'<circle cx="11" cy="11" r="8"/><path d="m17 17 4 4"/>',plus:'<path d="M12 5v14M5 12h14"/>',trash:'<path d="M3 6h18m-2 0-1 14H6L5 6m4 0V4h6v2M10 10v7m4-7v7"/>',refresh:'<path d="M20 11a8 8 0 1 0-2 6m2-12v6h-6"/>',branch:'<circle cx="6" cy="3" r="2"/><path d="M6 5v12a4 4 0 0 0 4 4h3"/><circle cx="16" cy="21" r="2"/><circle cx="17" cy="6" r="2"/><path d="M6 13h7a4 4 0 0 0 4-4V8"/>',lock:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/>',settings:'<circle cx="12" cy="12" r="3"/><path d="M20 12a8 8 0 0 0-.2-2l2-1.6-2-3.5-2.4 1A9 9 0 0 0 14 4l-.4-2h-4L9 4a9 9 0 0 0-3.3 1.9l-2.4-1-2 3.5L3.3 10A8 8 0 0 0 3 12a8 8 0 0 0 .3 2l-2 1.6 2 3.5 2.4-1A9 9 0 0 0 9 20l.6 2h4l.4-2a9 9 0 0 0 3.4-1.9l2.4 1 2-3.5-2-1.6A8 8 0 0 0 20 12Z"/>',chevron:'<path d="m9 18 6-6-6-6"/>',copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',info:'<circle cx="12" cy="12" r="10"/><path d="M12 11v5m0-8h.01"/>',x:'<path d="M18 6 6 18M6 6l12 12"/>',zap:'<path d="m13 2-9 12h7l-1 8 10-12h-7z"/>',chart:'<path d="M4 20V4m0 16h16M8 15l4-5 4 3 4-7"/>',globe:'<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>'};
-const icon=(name,size=18)=>`<svg aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${iconPaths[name]||iconPaths.code}</svg>`;
-const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt=n=>Number(n||0).toLocaleString('en-US');
-const badge=(txt,cls=txt)=>`<span class="badge ${h(cls)}">${h(txt)}</span>`;
-const btn=(text,action,cls='ghost',extra='')=>`<button type="button" class="btn ${cls}" data-action="${h(action)}" ${extra}>${text}</button>`;
 const now=()=>new Date().toISOString();
-const NAV=[['workspace','grid','Overview'],['inspector','code','Code Inspector'],['runner','terminal','Execution Lab'],['tests','flask','Automated Tests'],['evidence','file','Evidence Reports'],['fixes','wand','Fix & Verify'],['projects','layers','Project Explorer'],['teams','users','Team & CI']];
-const descriptions={workspace:'Overview',inspector:'Code Inspector',runner:'Execution Lab',tests:'Automated Tests',evidence:'Evidence Reports',fixes:'Fix & Verify',projects:'Project Explorer',teams:'Team & CI'};
-const saved=(()=>{try{const str=localStorage.getItem('codeproof.state.v1');const x=JSON.parse(str||'null');return x&&Array.isArray(x.files)&&Array.isArray(x.tests)?x:null;}catch{return null;}})();
-const S={files:saved?.files?.length?saved.files:structuredClone(sampleFiles),active:saved?.active||'src/payment.js',tests:saved?.tests||structuredClone(sampleTests),policy:saved?.policy||structuredClone(defaultPolicy),analysis:analyzeWorkspace(saved?.files?.length?saved.files:sampleFiles),view:location.hash.slice(1).split('?')[0]||'workspace',results:[],resultsStale:true,manual:null,filter:'all',search:'',testFilter:'all',selectedFinding:null,busy:false,runProgress:'',timeoutMs:1800,runArgs:'[100, 20]',runFn:'',patchReport:null,revertSnapshot:null,toast:[],modal:'',sideMenu:false,engineError:'',syncDisabled:false,showTestForm:false,aiNotice:false,pythonChecks:{}};
+const NAV=[['workspace','grid','Overview'],['scan','scan','Project Scan'],['inspector','code','Code Inspector'],['runner','terminal','Execution Lab'],['tests','flask','Automated Tests'],['evidence','file','Evidence Reports'],['fixes','wand','Fix & Verify'],['projects','layers','Project Explorer'],['teams','users','Team & CI'],['authorship','user','Authorship (secondary)']];
+const descriptions={scan:'Project Scan',authorship:'Authorship estimate',workspace:'Overview',inspector:'Code Inspector',runner:'Execution Lab',tests:'Automated Tests',evidence:'Evidence Reports',fixes:'Fix & Verify',projects:'Project Explorer',teams:'Team & CI'};
+// Workspace persistence is opt-in. A workspace saved by an earlier version keeps being saved until the
+// user turns storage off, so existing behavior is preserved; new users start with nothing stored.
+const STORE_KEY='codeproof.state.v1';
+const saved=(()=>{try{const str=localStorage.getItem(STORE_KEY);const x=JSON.parse(str||'null');return x&&Array.isArray(x.files)&&Array.isArray(x.tests)?x:null;}catch{return null;}})();
+const S={files:saved?.files?.length?saved.files:structuredClone(sampleFiles),active:saved?.active||'src/payment.js',tests:saved?.tests||structuredClone(sampleTests),policy:saved?.policy||structuredClone(defaultPolicy),analysis:analyzeWorkspace(saved?.files?.length?saved.files:sampleFiles),view:location.hash.slice(1).split('?')[0]||'workspace',results:[],resultsStale:true,manual:null,filter:'all',search:'',testFilter:'all',selectedFinding:null,busy:false,runProgress:'',timeoutMs:1800,runArgs:'[100, 20]',runFn:'',patchReport:null,revertSnapshot:null,toast:[],modal:'',sideMenu:false,engineError:'',syncDisabled:false,showTestForm:false,aiNotice:false,pythonChecks:{},
+ persist:Boolean(saved)&&saved.persist!==false,project:null,ingestError:null,dirtyAfterScan:new Set(),
+ scan:{status:'idle',phases:{},result:null},scanTab:'summary',selectedFindingId:null,findingPage:1,inventoryFilter:'all',inventoryPage:1,
+ findingFilters:{severity:'all',category:'all',verification:'all',file:'all',analyzer:'all',search:''},
+ scanOptions:{js:true,python:true,budgetMs:150000}};
 if(!NAV.some(n=>n[0]===S.view))S.view='workspace';
 if(!S.files.some(x=>x.path===S.active))S.active=S.files[0]?.path||'';
 const runner=new LocalTestRunner();
-const analysisWorker=new Worker(new URL('./analysis.worker.mjs',import.meta.url),{type:'module'});
-let analyzeSeq=0,analyzeTimer=null;
-analysisWorker.onmessage=ev=>{
+let analysisWorker=null,analyzeSeq=0,analyzeTimer=null,rpcSeq=0,activeRuntime=null;
+const rpcPending=new Map();
+function createWorker(){
+  analysisWorker=new Worker(new URL('./analysis.worker.mjs',import.meta.url),{type:'module'});
+  analysisWorker.onmessage=onWorkerMessage;
+  analysisWorker.onerror=ev=>{for(const p of rpcPending.values())p.reject(Object.assign(new Error('Analysis worker failed to start: '+(ev.message||'unknown error')),{stage:'Worker initialization'}));rpcPending.clear();};
+}
+// Promise-based requests to the analysis worker; progress messages stream to onProgress.
+function rpc(message,onProgress,transfer=[]){
+  const id='rpc-'+(++rpcSeq);
+  return new Promise((resolve,reject)=>{rpcPending.set(id,{resolve,reject,onProgress});analysisWorker.postMessage({...message,id},transfer);});
+}
+// Hard cancellation: terminating the worker stops parsing/type-checking immediately.
+function restartWorker(reason){
+  analysisWorker?.terminate();
+  for(const p of rpcPending.values())p.reject(Object.assign(new Error(reason),{name:'AbortError'}));
+  rpcPending.clear();createWorker();
+}
+function onWorkerMessage(ev){
+  const data=ev.data||{};
+  const pending=typeof data.id==='string'?rpcPending.get(data.id):null;
+  if(pending){
+    if(data.type==='progress'){pending.onProgress?.(data);return;}
+    rpcPending.delete(data.id);
+    if(data.type==='error')pending.reject(Object.assign(new Error(data.error),{name:data.name,code:data.code}));else pending.resolve(data);
+    return;
+  }
+  onLegacyAnalysis(ev);
+}
+const onLegacyAnalysis=ev=>{
   if(ev.data.id!==analyzeSeq)return;
   if(ev.data.error){S.engineError=ev.data.error;toast('Inspector: '+ev.data.error,'error');return;}
   S.analysis=ev.data.analysis;S.engineError='';
@@ -26,11 +59,14 @@ analysisWorker.onmessage=ev=>{
   else render();
 };
 function inspect(){clearTimeout(analyzeTimer);analyzeTimer=setTimeout(()=>{analyzeSeq++;analysisWorker.postMessage({id:analyzeSeq,files:S.files});},160);}
+createWorker();
 inspect();
 function persist(){
- try{const data=JSON.stringify({files:S.files,active:S.active,tests:S.tests,policy:S.policy});if(data.length<1_500_000){localStorage.setItem('codeproof.state.v1',data);S.syncDisabled=false;}else S.syncDisabled=true;}catch{S.syncDisabled=true;}
+ if(!S.persist)return;
+ try{const data=JSON.stringify({files:S.files,active:S.active,tests:S.tests,policy:S.policy,persist:true});if(data.length<1_500_000){localStorage.setItem(STORE_KEY,data);S.syncDisabled=false;}else S.syncDisabled=true;}catch{S.syncDisabled=true;}
 }
-function markModified(){S.resultsStale=true;S.patchReport=null;delete S.pythonChecks[S.active];persist();inspect();}
+function clearStoredWorkspace(){try{localStorage.removeItem(STORE_KEY);}catch{/* storage unavailable */}}
+function markModified(){S.resultsStale=true;S.patchReport=null;delete S.pythonChecks[S.active];if(S.scan.result)S.dirtyAfterScan.add(S.active);persist();inspect();}
 function toast(message,kind='info'){
   const area=document.querySelector('#toast-wrap');if(!area)return;
   const div=document.createElement('div');div.className=kind==='error'?'toast error':'toast';div.setAttribute('role','status');div.textContent=message;area.append(div);setTimeout(()=>div.remove(),4500);
@@ -46,42 +82,51 @@ function placeholder(title,detail,i='info'){return `<div class="blank">${icon(i,
 function fileOptions(){return S.files.map(f=>`<option value="${h(f.path)}" ${f.path===S.active?'selected':''}>${h(f.path)}</option>`).join('');}
 function fileTree(){return `<div class="file-list">${S.files.map(f=>`<div class="row" style="gap:1px"><button class="file-entry ${f.path===S.active?'active':''}" data-action="select-file" data-path="${h(f.path)}">${icon('file',14)}<span class="code-ext ${f.language==='python'?'py':f.language==='typescript'?'ts':''}">${({javascript:'JS',typescript:'TS',python:'PY',go:'GO',rust:'RS',java:'JV',cpp:'C+',csharp:'C#'})[f.language]}</span><span class="file-name" title="${h(f.path)}">${h(f.path)}</span></button><button class="btn-icon" data-action="delete-file" data-path="${h(f.path)}" aria-label="Remove ${h(f.path)}">${icon('trash',13)}</button></div>`).join('')||placeholder('No files','Add a supported source file to begin.')}</div>`;}
 function headActions(){return `<div class="top-actions"><span class="status-dot"></span><span class="status-label">Local-first · no source upload</span>${btn(icon('download')+' Export', 'export-json','ghost sm')}</div>`;}
+function navButton(key,ico,label,secondary=false){return `<button data-action="navigate" data-view="${key}" class="nav-item ${secondary?'secondary':''} ${S.view===key?'active':''}" ${S.view===key?'aria-current="page"':''}>${icon(ico)}<span>${label}</span>${key==='inspector'?`<span class="nav-small">${S.analysis.findings.length}</span>`:key==='scan'&&S.scan.result?`<span class="nav-small">${S.scan.result.findings.length}</span>`:key==='scan'&&S.scan.status==='running'?'<span class="nav-small">…</span>':''}</button>`;}
 function layout(){
  const active=NAV.find(x=>x[0]===S.view)||NAV[0];
- root.innerHTML=`<div class="shell"><aside class="sidebar"><div class="brand"><span class="brand-mark">${icon('shield',28)}</span><div><strong>CodeProof</strong><small>VERIFICATION LAB</small></div></div><div class="nav-title">WORKSPACE</div><nav aria-label="Main navigation">${NAV.map(([key,ico,label])=>`<button data-action="navigate" data-view="${key}" class="nav-item ${S.view===key?'active':''}">${icon(ico)}<span>${label}</span>${key==='inspector'?`<span class="nav-small">${S.analysis.findings.length}</span>`:''}</button>`).join('')}</nav><div class="sidebar-bottom"><div class="local-pill">${icon('lock',16)} Private browser workspace</div><p>No account, server, tracking or API key is needed for inspection. Downloaded Python runtime is optional.</p></div></aside><div class="content"><header class="topbar"><div class="crumb">CodeProof <span class="sep">/</span><strong>${h(active[2])}</strong></div>${headActions()}</header><main class="main">${renderView()}</main></div></div><div class="toast-wrap" id="toast-wrap" aria-live="polite"></div><div id="modal-anchor">${renderModal()}</div>`;
+ root.innerHTML=`<a class="skip-link" href="#main-content">Skip to content</a><div class="shell"><aside class="sidebar"><div class="brand"><span class="brand-mark">${icon('shield',28)}</span><div><strong>CodeProof</strong><small>VERIFICATION LAB</small></div></div><div class="nav-title">WORKSPACE</div><nav aria-label="Main navigation">${NAV.filter(n=>n[0]!=='authorship').map(([key,ico,label])=>navButton(key,ico,label)).join('')}<div class="nav-title secondary-title">SECONDARY</div>${navButton('authorship','user','Authorship estimate',true)}</nav><div class="sidebar-bottom"><div class="local-pill">${icon('lock',16)} Private browser workspace</div><p>Files are processed in this tab. CodeProof sends no source, findings or telemetry anywhere; the page's Content-Security-Policy only allows requests to this site.</p><label class="check small"><input type="checkbox" id="persist-toggle" ${S.persist?'checked':''}> Keep editor workspace in this browser's storage</label>${S.persist?'<p class="tiny">Stored locally until you untick this box (it is then deleted). Scan results are never stored.</p>':''}</div></aside><div class="content"><header class="topbar"><div class="crumb">CodeProof <span class="sep">/</span><strong>${h(active[2])}</strong></div>${headActions()}</header><main class="main" id="main-content" tabindex="-1">${renderView()}</main></div></div><div class="toast-wrap" id="toast-wrap" aria-live="polite"></div><div id="modal-anchor">${renderModal()}</div>`;
  if(S.view==='inspector')hydrateEditor();
  if(S.modal==='new-file')document.getElementById('new-file-path')?.focus();
  if(S.view==='teams'){const el=document.getElementById('policy-json');if(el)el.value=JSON.stringify(S.policy,null,2);}
  if(S.view==='runner'||S.view==='tests')fillTestForm();
 }
-function renderView(){switch(S.view){case'workspace':return overview();case'inspector':return inspector();case'runner':return runnerView();case'tests':return testView();case'evidence':return evidenceView();case'fixes':return fixView();case'projects':return projectView();case'teams':return teamView();default:return overview();}}
+function renderView(){switch(S.view){case'scan':return scanView(S,{pageHead});case'authorship':return authorshipView(S,{pageHead});case'workspace':return overview();case'inspector':return inspector();case'runner':return runnerView();case'tests':return testView();case'evidence':return evidenceView();case'fixes':return fixView();case'projects':return projectView();case'teams':return teamView();default:return overview();}}
 function overview(){
  const c=statusCounts(),counts=summarize(S.results);
  return `${pageHead('Independent code assurance','Trust the evidence. <span class="gradient">Not the output.</span>','A browser-native verification lab for AI-assisted and human-written code. Inspect source, challenge assumptions, run isolated tests, and export reproducible evidence—without sending your files to a server.')}
- <div class="row wrap mb">${btn(icon('play')+' Run test suite','run-tests','primary')}${btn(icon('code')+' Open inspector','go-inspector')}${btn(icon('upload')+' Import repository','go-projects','ghost')}${badge('v'+APP_VERSION,'info')}</div>
+ <div class="row wrap mb">${btn(icon('scan')+' Scan a project','go-scan','primary')}${btn(icon('play')+' Run test suite','run-tests')}${btn(icon('code')+' Open inspector','go-inspector','ghost')}${badge('v'+APP_VERSION,'info')}</div>
+ ${S.scan.result?`<div class="notice mb"><b>Last project scan:</b> ${h(S.scan.result.project.name)} · ${h(S.scan.result.coverage.verdict.message)} ${btn('Open results '+icon('arrow'),'go-scan','ghost sm')}</div>`:''}
  <section class="stats" aria-label="Workspace metrics">
  ${metric('file',fmt(S.files.length),'Source files','indigo')}${metric('code',fmt(S.analysis.lines),'Lines inspected','')}${metric('alert',fmt(c.critical+c.high),'Major findings','alert')}${metric('flask',S.resultsStale?'—':`${counts.passed}/${counts.total}`,'Tests passed', 'warning')}
  </section>
  <section class="grid-two mb"><div class="panel"><div class="panel-head"><h3>Verification pipeline</h3><span class="meta">5 core engines + extensions</span></div><div class="panel-body compact">${[
- ['Code Inspector','Syntax, reliability, security, and maintainability findings','inspector','check'],['Safe Execution Lab','Opaque-origin worker sandboxes and hard timeouts','runner','terminal'],['Automated Tests','Expected results, edge inputs, determinism checks','tests','flask'],['Evidence Reports','File hashes, findings, failures, unverified areas','evidence','file'],['Fix & Verify','Patch, rerun identical tests, flag regressions','fixes','wand'],['Repository and Team Tools','ZIP/folder imports, dependency map and PR checks','projects','branch']
+ ['Project Scan','Whole-project parsing, type checking, integration graph, sandboxed tests and coverage','scan','scan'],['Code Inspector','Syntax, reliability, security, and maintainability findings','inspector','check'],['Safe Execution Lab','Opaque-origin worker sandboxes and hard timeouts','runner','terminal'],['Automated Tests','Expected results, edge inputs, determinism checks','tests','flask'],['Evidence Reports','File hashes, findings, failures, unverified areas','evidence','file'],['Fix & Verify','Patch, rerun identical tests, flag regressions','fixes','wand'],['Repository and Team Tools','ZIP/folder imports, dependency map and PR checks','projects','branch']
  ].map(([title,desc,key,ico])=>`<div class="cardlink"><div class="row">${icon(ico,18)}<div><h4>${title}</h4><p>${desc}</p></div></div><button class="btn-icon" aria-label="Open ${title}" data-action="navigate" data-view="${key}">${icon('chevron')}</button></div>`).join('')}</div></div>
- <div class="panel"><div class="panel-head"><h3>Current verification status</h3><span class="meta">Heuristic, not a certification</span></div><div class="panel-body"><div class="scoring"><strong>${S.analysis.score}<span style="font-size:20px;color:var(--dim)">/100</span></strong><span>Static findings score · not a correctness guarantee</span></div><hr class="divider"/><div class="bars">${[['Critical',c.critical,'var(--red)'],['High',c.high,'var(--amber)'],['Medium',c.medium,'var(--purple)']].map(([l,n,color])=>`<div class="bar-row"><span>${l}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,n*12)}%;background:${color}"></div></div><small>${n}</small></div>`).join('')}</div><hr class="divider"/>${alertBox(`${icon('info',14)} &nbsp; <b>AI authorship:</b> inconclusive. No calibrated probability is claimed from code style alone.`)}<div class="mt">${btn('View evidence '+icon('arrow'),'go-evidence','ghost sm')}</div></div></div></section>
- <section class="grid-two even"><div class="panel"><div class="panel-head"><h3>Most relevant issues</h3>${btn('All findings '+icon('arrow'),'go-inspector','ghost sm')}</div><div class="panel-body compact">${S.analysis.findings.slice(0,4).map(issueCompact).join('')||placeholder('No issues in implemented checks','This is not proof of correctness.')}</div></div><div class="panel"><div class="panel-head"><h3>Your data stays here</h3>${badge('Local-first','passed')}</div><div class="panel-body"><div class="timeline">${[['No source upload','Inspection, tests, patches and reports run in your browser.'],['JS/TS isolated execution','No direct access to the app origin, with network denied inside the execution frame.'],['Python needs runtime download','Pyodide is fetched from an allowlisted CDN when first used; Python execution remains experimental.'],['Native execution is out of scope','GitHub Pages cannot provide hardened OS containers or a team database.']].map(([a,b],i)=>`<div class="step"><span class="step-number">${i+1}</span><div><strong>${a}</strong><p>${b}</p></div></div>`).join('')}</div></div></div></section><div class="footer-note">Static GitHub Pages deployment · No telemetry · Open-source-ready foundations · Authorship estimates are not a verdict.</div>`;
+ <div class="panel"><div class="panel-head"><h3>Current verification status</h3><span class="meta">Heuristic, not a certification</span></div><div class="panel-body"><div class="scoring"><strong>${S.analysis.score}<span style="font-size:20px;color:var(--dim)">/100</span></strong><span>Static findings score · not a correctness guarantee</span></div><hr class="divider"/><div class="bars">${[['Critical',c.critical,'var(--red)'],['High',c.high,'var(--amber)'],['Medium',c.medium,'var(--purple)']].map(([l,n,color])=>`<div class="bar-row"><span>${l}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,n*12)}%;background:${color}"></div></div><small>${n}</small></div>`).join('')}</div><hr class="divider"/>${alertBox(`${icon('info',14)} &nbsp; <b>AI authorship:</b> a separate, heuristic estimate is available after a project scan. It defaults to "Indeterminate" and never affects findings.`)}<div class="mt">${btn('View evidence '+icon('arrow'),'go-evidence','ghost sm')}</div></div></div></section>
+ <section class="grid-two even"><div class="panel"><div class="panel-head"><h3>Most relevant issues</h3>${btn('All findings '+icon('arrow'),'go-inspector','ghost sm')}</div><div class="panel-body compact">${S.analysis.findings.slice(0,4).map(issueCompact).join('')||placeholder('No issues in implemented checks','This is not proof of correctness.')}</div></div><div class="panel"><div class="panel-head"><h3>Your data stays here</h3>${badge('Local-first','passed')}</div><div class="panel-body"><div class="timeline">${[['No source upload','Inspection, tests, patches and reports run in your browser.'],['JS/TS isolated execution','No direct access to the app origin, with network denied inside the execution frame.'],['Python runs from this site','The Pyodide runtime ships with CodeProof, is checked against pinned SHA-256 digests before use, and runs with no network access.'],['Native execution is out of scope','GitHub Pages cannot provide hardened OS containers or a team database.']].map(([a,b],i)=>`<div class="step"><span class="step-number">${i+1}</span><div><strong>${a}</strong><p>${b}</p></div></div>`).join('')}</div></div></div></section><div class="footer-note">Static GitHub Pages deployment · No telemetry · No third-party requests · Authorship estimates are not a verdict.</div>`;
 }
 function metric(ico,num,label,kind){return `<div class="stat ${kind}"><div class="stat-icon">${icon(ico,18)}</div><strong>${num}</strong><div class="caption">${label}</div></div>`;}
 function issueCompact(f){return `<div class="cardlink"><div><div class="row mb-sm" style="gap:8px">${badge(f.severity)}<b class="small">${h(f.title)}</b></div><p class="code-ref">${h(f.file)}:${f.line}</p></div><button class="btn-icon" data-action="open-finding" data-id="${h(f.id)}" aria-label="Open finding">${icon('chevron')}</button></div>`;}
 function inspector(){
  const file=fileInFocus();
  return `${pageHead('MVP 01 · Static analysis','Code Inspector','Parse JavaScript and TypeScript with real parsers; scan Python, Go, Rust, Java, C/C++ and C# with limited heuristics; review rule-backed findings with line references and practical remediation.')}
- <div class="toolbar"><div class="row wrap">${btn(icon('plus')+' New file','new-file')}${btn(icon('upload')+' Import','go-projects')}${btn(icon('refresh')+' Reinspect','reinspect','ghost')}</div><div class="row" id="inspector-badges">${inspectorBadges()}</div></div>
+ <div class="toolbar"><div class="row wrap">${btn(icon('plus')+' New file','new-file')}${btn(icon('upload')+' Import / scan','go-scan')}${btn(icon('refresh')+' Reinspect','reinspect','ghost')}</div><div class="row" id="inspector-badges">${inspectorBadges()}</div></div>
  <div class="grid-two"><div><div class="panel mb"><div class="panel-head"><h3>Workspace files</h3><span class="meta">${S.files.length} source files</span></div>${fileTree()}</div><div class="panel"><div class="panel-head"><h3>Source editor</h3><span class="meta" data-live-count>${findingsForCurrent().length} findings</span></div><div class="panel-body"><div class="editor-shell"><div class="editor-top"><span class="language-dot ${file?.language||''}"></span><strong>${h(file?.path||'No source file')}</strong><span style="margin-left:auto;color:var(--dim)">${file?.language||'text'}</span></div><div class="editor-space"><div class="line-gutter" id="line-gutter">1</div><textarea id="code-editor" class="code-area" aria-label="Source code editor" spellcheck="false" placeholder="// Add code here..."></textarea></div></div><div class="row between wrap mt"><span class="tiny muted">Ctrl / Cmd + Enter runs the current function</span>${btn(icon('play')+' Open runner','go-runner','primary sm')}</div></div></div></div>
  <div id="inspector-side">${inspectorSide(file)}</div></div>
- <p class="footer-note">Detection is rule-based and intentionally limited. Python syntax is verified fully only when using the optional Pyodide execution runtime. Treat warnings as leads, not definitive security findings.</p>`;
+ <p class="footer-note">The live inspector runs per-file parsers and rules as you type. Whole-project type checking, cross-file integration checks and sandboxed tests run in Project Scan. Python grammar is fully verified only by CPython (Pyodide). Treat security observations as leads, not proven vulnerabilities.</p>`;
+}
+// Findings for this file that only a whole-project scan can produce (compiler, integration, runtime).
+function projectFindingsPanel(file){
+ const r=S.scan.result;if(!r||!file)return '';
+ const live=new Set(['acorn-rules','typescript-ast-rules','acorn','typescript-parser','python-tokenizer','delimiter-scanner','native-pattern-rules','secret-scanner','text-rules','json-validator','package-json-rules','config-rules','requirements-parser']);
+ const list=r.findings.filter(f=>(f.file===file.path||(f.affected||[]).includes(file.path))&&f.analyzers.some(a=>!live.has(a)));
+ return `<div class="panel mb"><div class="panel-head"><h3>From the last project scan</h3><span class="meta">${list.length} cross-file / runtime</span></div><div class="panel-body compact">${S.dirtyAfterScan.has(file.path)?'<p class="form-help">Edited since the scan; rerun it to refresh these results.</p>':''}${list.slice(0,12).map(f=>`<div class="cardlink"><div><div class="row mb-sm" style="gap:6px">${badge(f.severity)}${verificationBadge(f.verification)}</div><b class="small">${h(f.title)}</b><p class="code-ref">${h(f.file)}:${f.line||1}</p></div><button class="btn-icon" data-action="open-scan-finding" data-id="${h(f.id)}" aria-label="Open finding details">${icon('chevron')}</button></div>`).join('')||placeholder('None for this file','The project scan found no compiler, integration or runtime findings here.','check')}</div></div>`;
 }
 function inspectorBadges(){return `${badge(`${S.analysis.findings.length} findings`,'info')}${badge(`${S.analysis.parsed}/${S.files.length} grammar checked`,'info')}`;}
 function inspectorSide(file){
  const current=S.analysis.findings.filter(f=>f.file===file?.path).filter(f=>(S.filter==='all'||f.severity===S.filter)&&(!S.search||`${f.title} ${f.message} ${f.rule}`.toLowerCase().includes(S.search.toLowerCase())));
- return `${file?.language==='python'?`<div class="panel mb"><div class="panel-head"><h3>Python grammar validation</h3>${badge('On demand','warning')}</div><div class="panel-body"><p class="hint">The preliminary scan does not parse the full Python grammar. Validate using Python's AST parser inside the isolated Pyodide runtime (first load needs CDN access).</p>${btn(icon('check')+' Parse Python grammar','validate-python','primary sm',S.busy?'disabled':'')}${S.pythonChecks[file.path]?`<div class="mt ${S.pythonChecks[file.path].ok?'insight':'warning-callout'}">${h(S.pythonChecks[file.path].message)}</div>`:''}</div></div>`:''}<div class="panel mb"><div class="panel-head"><h3>Findings for file</h3><span class="meta">${current.length} shown</span></div><div class="panel-body"><div class="row wrap mb-sm"><select class="form-control" id="severity-filter" aria-label="Filter findings by severity">${['all','critical','high','medium','low','info'].map(x=>`<option value="${x}" ${x===S.filter?'selected':''}>${x==='all'?'All severities':x}</option>`).join('')}</select><div class="finder" style="flex:1"><input id="finding-search" value="${h(S.search)}" placeholder="Search findings" aria-label="Search findings" style="width:100%"></div></div><div id="finding-list">${current.map(issueCard).join('')||placeholder('No matching findings','Try another filter, or inspect a different source file.','search')}</div></div></div><div class="panel"><div class="panel-head"><h3>Discovered functions</h3><span class="meta">${selectedFunctions().length} callable symbols</span></div><div class="panel-body compact">${selectedFunctions().map(fn=>`<div class="cardlink"><div><h4 class="code-ref">${h(fn.name)}(${fn.params} parameter${fn.params!==1?'s':''})</h4><p>Line ${fn.line}</p></div><button class="btn sm" data-action="run-fn" data-fn="${h(fn.name)}">${icon('play',13)} Run</button></div>`).join('')||placeholder('No functions found','Use a named function declaration or arrow function.','code')}</div></div>`;
+ return `${file?.language==='python'?`<div class="panel mb"><div class="panel-head"><h3>Python grammar validation</h3>${badge('On demand','warning')}</div><div class="panel-body"><p class="hint">The live scan uses CodeProof's Python tokenizer, not the full grammar. Validate with CPython's own parser in the sandboxed Pyodide runtime (about 12 MB, loaded from this site and integrity-checked).</p>${btn(icon('check')+' Parse Python grammar','validate-python','primary sm',S.busy?'disabled':'')}${S.pythonChecks[file.path]?`<div class="mt ${S.pythonChecks[file.path].ok?'insight':'warning-callout'}">${h(S.pythonChecks[file.path].message)}</div>`:''}</div></div>`:''}<div class="panel mb"><div class="panel-head"><h3>Findings for file</h3><span class="meta">${current.length} shown</span></div><div class="panel-body"><div class="row wrap mb-sm"><select class="form-control" id="severity-filter" aria-label="Filter findings by severity">${['all','critical','high','medium','low','info'].map(x=>`<option value="${x}" ${x===S.filter?'selected':''}>${x==='all'?'All severities':x}</option>`).join('')}</select><div class="finder" style="flex:1"><input id="finding-search" value="${h(S.search)}" placeholder="Search findings" aria-label="Search findings" style="width:100%"></div></div><div id="finding-list">${current.map(issueCard).join('')||placeholder('No matching findings','Try another filter, or inspect a different source file.','search')}</div></div></div>${projectFindingsPanel(file)}<div class="panel"><div class="panel-head"><h3>Discovered functions</h3><span class="meta">${selectedFunctions().length} callable symbols</span></div><div class="panel-body compact">${selectedFunctions().map(fn=>`<div class="cardlink"><div><h4 class="code-ref">${h(fn.name)}(${fn.params} parameter${fn.params!==1?'s':''})</h4><p>Line ${fn.line}</p></div><button class="btn sm" data-action="run-fn" data-fn="${h(fn.name)}">${icon('play',13)} Run</button></div>`).join('')||placeholder('No functions found','Use a named function declaration or arrow function.','code')}</div></div>`;
 }
 // Refresh the inspector panels around the editor without re-rendering it, so typing keeps focus and caret position.
 function refreshInspector(){
@@ -109,9 +154,10 @@ function testCard(t){return `<div class="test-row"><div class="test-status">${ic
 function resultCard(t){return `<div class="test-row"><div class="test-status" style="color:${t.status==='passed'?'var(--teal)':t.status==='failed'?'var(--red)':'var(--amber)'}">${icon(t.status==='passed'?'check':'alert',15)}</div><div style="min-width:0;flex:1"><div class="row between wrap"><strong>${h(t.title)}</strong>${badge(t.status)}</div><small>${h(t.message)} · ${t.durationMs} ms</small>${t.kind==='expected'?`<div class="test-detail">Expected ${h(JSON.stringify(t.expected))} · Actual ${h(JSON.stringify(t.actual))}</div>`:''}</div></div>`;}
 function evidenceView(){const f=S.analysis.findings,results=summarize(S.results);
  return `${pageHead('MVP 04 · Transparent evidence','Evidence & Authorship','Export a verification receipt with SHA-256 source fingerprints, rule-backed findings, recorded test outcomes and explicit unverified areas. Authorship analysis is always separate from software quality.')}
- <div class="row wrap mb">${btn(icon('download')+' Export JSON receipt','export-json','primary')}${btn(icon('file')+' Download Markdown','export-markdown')}${btn(icon('copy')+' Copy summary','copy-summary')}</div>
+ ${S.scan.result?`<div class="panel mb"><div class="panel-head"><h3>Project scan report</h3>${badge(S.scan.result.coverage.verdict.incomplete?'Verification incomplete':'Scoped to checks that ran',S.scan.result.coverage.verdict.incomplete?'warning':'info')}</div><div class="panel-body"><p class="hint">${h(S.scan.result.project.name)} · ${fmt(S.scan.result.findings.length)} findings · ${h(S.scan.result.coverage.verdict.message)}</p><div class="row wrap">${btn(icon('download')+' Scan report (JSON)','export-scan-json','primary')}${btn(icon('file')+' Scan report (Markdown)','export-scan-md')}${btn(icon('code')+' SARIF','export-scan-sarif')}</div></div></div>`:''}
+ <div class="row wrap mb">${btn(icon('download')+' Export JSON receipt','export-json',S.scan.result?'ghost':'primary')}${btn(icon('file')+' Download Markdown','export-markdown')}${btn(icon('copy')+' Copy summary','copy-summary')}</div>
  <div class="grid-two mb"><div class="panel"><div class="panel-head"><h3>Verification snapshot</h3><span class="meta">${humanDate(S.analysis.inspectedAt)}</span></div><div class="panel-body"><div class="kpi-row"><div class="kpi"><strong>${S.analysis.files}</strong><small>Sources</small></div><div class="kpi"><strong>${f.length}</strong><small>Findings</small></div><div class="kpi"><strong>${S.resultsStale?'—':results.passed+'/'+results.total}</strong><small>Passed tests</small></div></div><hr class="divider"/><div class="metric-split"><span>Parsing</span><b>${S.analysis.parsed}/${S.files.length} files</b></div><div class="metric-split"><span>Static findings score</span><b>${S.analysis.score}/100</b></div><div class="metric-split"><span>Execution coverage</span><b>Selected cases only</b></div><div class="metric-split"><span>Verification state</span>${badge(S.resultsStale?'Changed since run':'Session current',S.resultsStale?'warning':'passed')}</div></div></div>
- <div class="panel"><div class="panel-head"><h3>AI authorship evidence</h3>${badge('Inconclusive','warning')}</div><div class="panel-body"><div class="warning-callout mb-sm"><b>No reliable AI-written probability is available.</b> A code-only classifier can have significant false positives; style clues are not a provenance verdict. CodeProof intentionally returns "Inconclusive" until independently validated author/provenance evidence is available.</div>${S.analysis.signals.map(x=>`<div class="cardlink"><div><h4>${h(x.label)}</h4><p>${h(x.detail)}</p></div>${badge(x.weight,'low')}</div>`).join('')}<p class="form-help">Future research module: calibrated model with abstention, multi-language test sets, verified signatures and voluntary provenance metadata. No fake 72% confidence badge.</p></div></div></div>
+ <div class="panel secondary"><div class="panel-head"><h3>AI authorship evidence</h3>${badge(S.scan.result?.authorship?.label||'Inconclusive',S.scan.result?.authorship?.category==='indeterminate'||!S.scan.result?'warning':'info')}</div><div class="panel-body"><div class="warning-callout mb-sm"><b>No calibrated AI-written probability is produced.</b> The secondary estimate is heuristic, defaults to "Indeterminate" and is never used for findings. Source code alone cannot prove authorship.</div>${S.analysis.signals.slice(0,6).map(x=>`<div class="cardlink"><div><h4>${h(x.label)}</h4><p>${h(x.detail)}</p></div>${badge(x.weight,'low')}</div>`).join('')}<div class="mt">${btn('Open authorship estimate '+icon('arrow'),'go-authorship','ghost sm')}</div></div></div></div>
  <div class="panel"><div class="panel-head"><h3>Not verified by this build</h3><span class="meta">No false certainty</span></div><div class="panel-body"><div class="grid-three">${[['Universal correctness','Passing tests cannot prove the absence of undiscovered bugs.'],['Actual AI authorship','No signed origin metadata or calibrated forensic model is included.'],['Native system isolation','The static site cannot spawn OS microVMs, containers, or kernel sandboxes.'],['Dependency advisories','Packages are extracted but not compared to a live vulnerability feed.'],['End-to-end integrations','Real database/API interactions are not exercised locally.'],['Supply-chain integrity','Source-file hashes support later comparison, not author identity.']].map(([title,desc])=>`<div><b class="small">${h(title)}</b><p class="hint">${h(desc)}</p></div>`).join('')}</div></div></div>`;
 }
 function fixView(){const patches=findPatches(S.files,S.analysis.findings);const report=S.patchReport;
@@ -123,9 +169,9 @@ function fixView(){const patches=findPatches(S.files,S.analysis.findings);const 
 }
 function projectView(){const edges=dependencyEdges(S.analysis.dependencies),external=edges.filter(x=>x.kind==='external');
  return `${pageHead('Expansion · Repository intelligence','Project Explorer','Inspect folders and ZIP repositories locally, build import graphs, detect issues across files, and export edited source as a ZIP. Source-file size and count limits reduce accidental browser overload.')}
- <div class="grid-two mb"><div class="panel"><div class="panel-head"><h3>Import a project</h3>${badge('No upload','passed')}</div><div class="panel-body"><div class="upload-box" id="drop-zone">${icon('upload',34)}<strong>Drop a ZIP or source files here</strong><span class="small">JS, TS, Python, Go, Rust, Java, C/C++, C# · up to ${S.policy.maxFiles} files</span><div class="row wrap">${btn('Choose ZIP','open-zip','ghost sm')}${btn('Choose folder','open-folder','ghost sm')}${btn('Source files','open-files','ghost sm')}</div></div><input id="zip-picker" class="hidden" type="file" accept=".zip"><input id="folder-picker" class="hidden" type="file" webkitdirectory directory multiple><input id="files-picker" class="hidden" type="file" accept=".js,.jsx,.ts,.tsx,.mjs,.cjs,.py,.go,.rs,.java,.cpp,.c,.h,.cs" multiple><p class="form-help">ZIP is parsed locally. Entries with traversal paths, unwanted directories, unsupported extensions, or oversized contents are ignored. A small local-workspace snapshot is kept in browser storage when capacity permits.</p><div class="row wrap mt">${btn(icon('download')+' Export project ZIP','export-project')}${btn(icon('refresh')+' Load demo workspace','reset-demo','ghost')}</div></div></div>
- <div class="panel"><div class="panel-head"><h3>Project structure</h3><span class="meta">${S.files.length} files</span></div><div class="panel-body"><div class="kpi-row"><div class="kpi"><strong>${S.files.length}</strong><small>Source files</small></div><div class="kpi"><strong>${edges.length}</strong><small>Import edges</small></div><div class="kpi"><strong>${external.length}</strong><small>External refs</small></div></div><hr class="divider"/><div style="max-height:280px;overflow:auto">${S.files.map(f=>`<button class="file-entry" data-action="select-project-file" data-path="${h(f.path)}">${icon('file',14)}<span class="file-name">${h(f.path)}</span><span class="code-ext ${f.language==='python'?'py':'ts'}" style="margin-left:auto">${f.language.slice(0,2).toUpperCase()}</span></button>`).join('')}</div></div></div></div>
- <div class="panel mb"><div class="panel-head"><h3>Dependency edges</h3><span class="meta">Resolved local paths are matched heuristically</span></div><div class="panel-body"><div class="grid-two even">${edges.slice(0,60).map(e=>`<div class="graph-row"><span>${h(e.from)}</span>${icon('arrow',13)}<b class="${e.kind}">${h(e.to)}</b></div>`).join('')||placeholder('No imports found','Add module imports to view file relationships.','branch')}</div>${edges.length>60?`<p class="form-help">Showing 60 of ${edges.length} edges.</p>`:''}</div></div><div class="notice">${icon('info',14)} <b>Dependency analysis:</b> references are not the same as installed packages; this explorer does not resolve dynamic imports, lockfiles, TS path aliases, or dependency CVEs. PR checks and shared policy setup are under Team & CI.</div>`;
+ <div class="grid-two mb"><div class="panel"><div class="panel-head"><h3>Import a project</h3>${badge('No upload','passed')}</div><div class="panel-body"><div class="upload-box" id="drop-zone" tabindex="0" role="button" aria-label="Drop files, a folder or a ZIP here" data-action="open-files">${icon('upload',34)}<strong>Drop a ZIP, a folder or source files here</strong><span class="small">Every file is inventoried; up to ${fmt(S.policy.maxFiles)} text files of ${fmt(S.policy.maxFileBytes)} bytes each are loaded</span><div class="row wrap">${btn('Choose ZIP','open-zip','ghost sm')}${btn('Choose folder','open-folder','ghost sm')}${btn('Source files','open-files','ghost sm')}</div></div><input id="zip-picker" class="hidden" type="file" accept=".zip,application/zip"><input id="folder-picker" class="hidden" type="file" webkitdirectory directory multiple><input id="files-picker" class="hidden" type="file" multiple><p class="form-help">Archives are validated (entry count, sizes, compression ratio, path traversal, CRC) and inflated in a worker with hard limits; nothing is written to disk. Imports start a Project Scan automatically.</p><div class="row wrap mt">${btn(icon('scan')+' Open Project Scan','go-scan','primary sm')}${btn(icon('download')+' Export project ZIP','export-project')}${btn(icon('refresh')+' Load demo workspace','reset-demo','ghost')}</div></div></div>
+ <div class="panel"><div class="panel-head"><h3>Project structure</h3><span class="meta">${S.files.length} files</span></div><div class="panel-body"><div class="kpi-row"><div class="kpi"><strong>${S.files.length}</strong><small>Source files</small></div><div class="kpi"><strong>${edges.length}</strong><small>Import edges</small></div><div class="kpi"><strong>${external.length}</strong><small>External refs</small></div></div><hr class="divider"/><div style="max-height:280px;overflow:auto">${S.files.map(f=>`<button class="file-entry" data-action="select-project-file" data-path="${h(f.path)}">${icon('file',14)}<span class="file-name">${h(f.path)}</span><span class="code-ext ${f.language==='python'?'py':'ts'}" style="margin-left:auto">${h((f.language||f.kind||'tx').slice(0,2).toUpperCase())}</span></button>`).join('')}</div></div></div></div>
+ <div class="panel mb"><div class="panel-head"><h3>Dependency edges</h3><span class="meta">Resolved local paths are matched heuristically</span></div><div class="panel-body"><div class="grid-two even">${edges.slice(0,60).map(e=>`<div class="graph-row"><span>${h(e.from)}</span>${icon('arrow',13)}<b class="${e.kind}">${h(e.to)}</b></div>`).join('')||placeholder('No imports found','Add module imports to view file relationships.','branch')}</div>${edges.length>60?`<p class="form-help">Showing 60 of ${edges.length} edges.</p>`:''}</div></div><div class="notice">${icon('info',14)} <b>Dependency analysis:</b> this quick view lists raw import references from the live inspector. Project Scan resolves modules (extensions, index files, tsconfig paths, workspaces, Python packages), checks exports and call signatures across files, detects cycles and compares imports with manifests and lockfiles. Packages are never downloaded and no CVE feed is consulted.</div>`;
 }
 function teamView(){return `${pageHead('Expansion · Continuous assurance','Team Policies & PR Checks','Generate a portable integration kit containing a standalone Node CLI, static rules, policy file and GitHub Actions workflow. Commit the kit to any repository for automatic PR scanning.')}
  <div class="grid-two mb"><div class="panel"><div class="panel-head"><h3>Shared policy</h3>${badge('Version 1','info')}</div><div class="panel-body"><label class="form-label" for="policy-json">JSON policy · stored locally until exported</label><textarea id="policy-json" class="form-control wide" rows="13" spellcheck="false"></textarea><p class="form-help">failOnSeverity accepts critical, high, medium, low, info, off. A PR check fails when a finding meets that threshold. Parser errors can be separately blocking.</p><div class="row wrap mt">${btn(icon('check')+' Save policy','save-policy','primary')}${btn(icon('download')+' Download JSON','download-policy','ghost')}</div></div></div>
@@ -135,22 +181,27 @@ function renderModal(){if(S.modal!=='new-file')return '';return `<div class="mod
 function hydrateEditor(){const editor=document.getElementById('code-editor'),file=fileInFocus();if(!editor)return;editor.value=file?.content||'';editor.disabled=!file;updateGutter(editor);}
 function updateGutter(el){const gutter=document.getElementById('line-gutter');if(!gutter)return;const count=Math.min(10000,(el.value.match(/\n/g)||[]).length+1);gutter.textContent=Array.from({length:count},(_,i)=>String(i+1)).join('\n');gutter.scrollTop=el.scrollTop;}
 function fillTestForm(){const file=document.querySelector('#test-file');if(file)file.value=S.active;}
-function render(){layout();}
-
-async function loadCompiler(){
- if(globalThis.ts?.transpileModule)return globalThis.ts;
- if(loadCompiler.promise)return loadCompiler.promise;
- loadCompiler.promise=new Promise((resolve,reject)=>{
-  const script=document.createElement('script');script.src='./vendor/typescript.js';script.onload=()=>globalThis.ts?.transpileModule?resolve(globalThis.ts):reject(Error('TypeScript compiler unavailable.'));script.onerror=()=>reject(Error('Unable to load bundled TypeScript compiler.'));document.head.appendChild(script);
- });return loadCompiler.promise;
+// Re-rendering replaces the DOM; keep keyboard focus and caret where the user was.
+function render(){
+ const active=document.activeElement,id=active?.id,sel=active&&typeof active.selectionStart==='number'?[active.selectionStart,active.selectionEnd]:null;
+ layout();
+ if(id&&id!=='code-editor'){const el=document.getElementById(id);if(el&&el!==document.activeElement){el.focus?.();if(sel&&typeof el.setSelectionRange==='function')try{el.setSelectionRange(sel[0],sel[1]);}catch{/* not a text field */}}}
 }
-function transpile(source,language){
- const ts=globalThis.ts;
- if(!ts)throw Error('TypeScript compiler not loaded.');
- const output=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.React},reportDiagnostics:true,fileName:language==='typescript'?'input.ts':'input.js'});
- const errors=(output.diagnostics||[]).filter(d=>d.category===ts.DiagnosticCategory.Error);
- if(errors.length)throw Error(ts.flattenDiagnosticMessageText(errors[0].messageText,' '));
- return output.outputText;
+const slug=s=>String(s||'project').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)||'project';
+function filterMatches(f){const ff=S.findingFilters;return (ff.severity==='all'||f.severity===ff.severity)&&(ff.category==='all'||f.category===ff.category)&&(ff.verification==='all'||f.verification===ff.verification)&&(ff.file==='all'||f.file===ff.file)&&(ff.analyzer==='all'||f.analyzers.includes(ff.analyzer))&&(!ff.search||`${f.title} ${f.rule} ${f.rootCause} ${f.file} ${f.id}`.toLowerCase().includes(ff.search.toLowerCase()));}
+
+// Transpilation happens in the analysis worker; the 9 MB compiler never loads on the main thread.
+// Every JS/TS/JSON file of the workspace is prepared so local imports resolve inside the sandbox.
+let transpileCache={key:'',value:null};
+const transpile=()=>transpileFor(S.files);
+async function transpileFor(workspace){
+ const files=workspace.filter(f=>['javascript','typescript','json'].includes(f.language)||/\.json$/.test(f.path));
+ const key=files.map(f=>f.path+':'+f.content.length+':'+f.content.slice(0,40)+f.content.slice(-40)).join('|');
+ if(transpileCache.key===key)return transpileCache.value;
+ const out=await rpc({type:'transpile',files:files.map(f=>({path:f.path,language:f.language||detectLanguage(f.path,f.content),content:f.content,kind:f.kind}))});
+ const failed=out.errors?.find(e=>e.path===S.active);if(failed)throw Error(failed.message);
+ transpileCache={key,value:{modules:out.modules}};
+ return transpileCache.value;
 }
 function setBusy(value,label=''){S.busy=value;S.runProgress=label;render();}
 async function runSuite(tests=S.tests,{replace=true,silent=false}={}){
@@ -158,7 +209,6 @@ async function runSuite(tests=S.tests,{replace=true,silent=false}={}){
  if(!tests.length){toast('Create a test first.');return []}
  S.busy=true;S.runProgress='Preparing runtimes';if(!silent)render();
  try{
-  if(tests.some(t=>S.files.find(f=>f.path===t.file)?.language!=='python'))await loadCompiler();
   const outcomes=await runner.runAll(S.files,tests,S.timeoutMs,transpile,(current,total)=>{S.runProgress=`Executed ${current}/${total}`;const progress=document.getElementById('run-progress');if(progress)progress.textContent=S.runProgress;});
   if(replace){S.results=outcomes;S.resultsStale=false;}return outcomes;
  }catch(e){toast('Test execution failed: '+e.message,'error');return []}
@@ -176,46 +226,161 @@ function downloadBinary(name,blob){const url=URL.createObjectURL(blob);const a=d
 async function receipt(){return makeReceipt(S.files,S.analysis,S.resultsStale?[]:S.results,S.policy);}
 async function downloadReport(markdown=false){try{const r=await receipt();downloadText(markdown?'codeproof-report.md':'codeproof-report.json',markdown?receiptMarkdown(r):JSON.stringify(r,null,2),markdown?'text/markdown':'application/json');}catch(e){toast('Report export: '+e.message,'error');}}
 async function loadZipLib(){if(globalThis.JSZip)return globalThis.JSZip;if(loadZipLib.promise)return loadZipLib.promise;loadZipLib.promise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='./vendor/jszip.min.js';script.onload=()=>resolve(globalThis.JSZip);script.onerror=()=>reject(Error('Bundled ZIP library unavailable'));document.head.appendChild(script);});return loadZipLib.promise;}
-async function importFiles(files){
- const accepted=[];let totalBytes=0;
- for(const file of Array.from(files)){
-  const path=(file.webkitRelativePath||file.name).replaceAll('\\','/');
-  if(!acceptedPath(path,S.policy)||file.size>S.policy.maxFileBytes)continue;
-  if(accepted.length>=S.policy.maxFiles)throw Error('Source count exceeds policy.');
-  totalBytes+=file.size;if(totalBytes>14_000_000)throw Error('Source data exceeds 14 MB.');
-  accepted.push({path,language:languageFromPath(path),content:await file.text()});
- }
- if(!accepted.length)throw Error('No supported source files found.');
- setWorkspace(accepted);toast(`Imported ${accepted.length} files.`);
+// ---------------------------------------------------------------- ingestion and project scan
+const SCAN_ORDER=['ingest','files','typecheck','integration','runtime','finalize'];
+let lastProgressRender=0;
+function updateProgress(p){
+ const sc=S.scan;if(sc.status!=='running')return;
+ const phase=p.phase==='prepare'?'files':p.phase==='done'?null:p.phase;
+ if(phase&&SCAN_ORDER.includes(phase)){for(const k of SCAN_ORDER.slice(0,SCAN_ORDER.indexOf(phase)))if(sc.phases[k]==='running')sc.phases[k]='done';sc.phases[phase]='running';}
+ if(p.label)sc.label=p.label;else if(p.phase==='ingest')sc.label=`Read ${fmt(p.done)} of ${fmt(p.total)} entries`;
+ sc.done=p.done;sc.total=p.total;
+ const label=document.getElementById('scan-progress-label');if(label)label.textContent=sc.label;
+ if(Date.now()-lastProgressRender>500&&S.view==='scan'){lastProgressRender=Date.now();render();}
 }
-function setWorkspace(files){validateWorkspace(files,S.policy);S.files=files;S.active=files[0]?.path||'';S.tests=[];S.results=[];S.manual=null;S.resultsStale=true;persist();inspect();render();}
-async function importArchive(file){
- if(file.size>15_000_000)throw Error('ZIP is over the 15 MB compressed limit.');
- const JSZip=await loadZipLib();const zip=await JSZip.loadAsync(file,{checkCRC32:true});
- const entries=Object.values(zip.files).filter(z=>!z.dir&&acceptedPath(z.name,S.policy));
- if(entries.length>S.policy.maxFiles)throw Error('Source file count exceeds configured limit.');
- let total=0;const files=[];
- for(const e of entries){
-  const size=e._data?.uncompressedSize||0;
-  if(size>S.policy.maxFileBytes)continue;
-  total+=size;if(total>14_000_000)throw Error('ZIP expands past the 14 MB extraction limit.');
-  const bytes=await e.async('uint8array');if(bytes.byteLength>S.policy.maxFileBytes)continue;
-  files.push({path:e.name,language:languageFromPath(e.name),content:new TextDecoder('utf-8',{fatal:false}).decode(bytes)});
+function resetForNewProject(project){
+ S.project=project;
+ S.files=project.files.map(f=>({path:f.path,language:f.language,kind:f.kind,content:f.content}));
+ S.active=(project.files.find(f=>['javascript','typescript','python'].includes(f.language)&&f.kind!=='test')||project.files[0])?.path||'';
+ S.tests=[];S.results=[];S.manual=null;S.resultsStale=true;S.selectedFindingId=null;S.dirtyAfterScan=new Set();S.ingestError=null;
+ S.findingFilters={severity:'all',category:'all',verification:'all',file:'all',analyzer:'all',search:''};
+ persist();inspect();
+}
+async function ingestProject(request,label,transfer=[]){
+ if(S.scan.status==='running'){toast('A scan is already running; cancel it first.');return;}
+ S.ingestError=null;S.view='scan';location.hash='scan';
+ S.scan={status:'running',phases:{ingest:'running'},label,done:0,total:0,startedAt:Date.now(),result:null,error:null};render();
+ try{
+  const out=await rpc(request,updateProgress,transfer);
+  const m=out.project.manifest;
+  if(!out.project.files.length){const skipped=m.filter(x=>x.status!=='ingested');throw Object.assign(new Error(`No readable text files were found (${skipped.length} entries skipped or rejected${skipped[0]?`; first: ${skipped[0].path} — ${skipped[0].reason}`:''}).`),{stage:'Ingestion'});}
+  resetForNewProject({...out.project,source:request.source||(request.zip?'ZIP archive':'files')});
+  S.scan.status='idle';
+  await startScan({ingested:true});
+ }catch(e){
+  S.scan.status=e.name==='AbortError'?'cancelled':'failed';S.scan.phases.ingest='failed';S.scan.finishedAt=Date.now();
+  S.ingestError={title:e.code?`Archive rejected (${e.code})`:e.name==='AbortError'?'Import cancelled':'Import failed',message:e.message};
+  render();
  }
- if(!files.length)throw Error('ZIP contained no supported source files.');
- setWorkspace(files);toast(`Imported ${files.length} files from ZIP.`);
+}
+async function importFiles(fileList,source='files'){
+ const entries=Array.from(fileList).map(file=>({path:file.webkitRelativePath||file.relativePath||file.name,file,size:file.size}));
+ if(!entries.length)throw Error('No files were selected.');
+ const roots=new Set(entries.map(e=>e.path.split('/')[0]));
+ await ingestProject({type:'ingest',entries,policy:S.policy,source,name:roots.size===1&&entries[0].path.includes('/')?[...roots][0]:undefined},`Reading ${fmt(entries.length)} files`);
+}
+async function importArchive(file){
+ if(file.size>50_000_000)throw Error(`ZIP is ${fmt(file.size)} bytes; the compressed limit is 50,000,000 bytes.`);
+ const bytes=await file.arrayBuffer();
+ await ingestProject({type:'ingest',zip:bytes,policy:S.policy,source:'ZIP archive',name:file.name.replace(/\.zip$/i,'')},`Validating and inflating ${file.name}`,[bytes]);
+}
+// Folder drag-and-drop: walk directory entries (skipping policy-excluded directories without reading them).
+async function filesFromDrop(dt){
+ const roots=[...(dt?.items||[])].map(i=>i.webkitGetAsEntry?.()).filter(Boolean);
+ if(!roots.length)return Array.from(dt?.files||[]).map(f=>({path:f.name,file:f,size:f.size}));
+ const out=[];
+ const walk=async(entry,prefix)=>{
+  if(out.length>50000)return;
+  if(entry.isFile){const file=await new Promise((res,rej)=>entry.file(res,rej));out.push({path:prefix+entry.name,file,size:file.size});return;}
+  if(!entry.isDirectory)return;
+  if(S.policy.ignorePaths.includes(entry.name)){out.push({path:prefix+entry.name+'/',isDirectory:true,size:0});return;}
+  const reader=entry.createReader();
+  for(;;){const batch=await new Promise((res,rej)=>reader.readEntries(res,rej));if(!batch.length)break;for(const e of batch)await walk(e,prefix+entry.name+'/');}
+ };
+ for(const r of roots)await walk(r,'');
+ return out;
+}
+function setWorkspace(files){validateWorkspace(files,S.policy);resetForNewProject({name:'Demo workspace',source:'demo',files:files.map(f=>({...f,language:f.language||detectLanguage(f.path,f.content),kind:f.kind||'source'})),manifest:files.map(f=>({path:f.path,language:f.language,status:'ingested',reason:'',warnings:[]})),limits:[],caseCollisions:[]});S.scan={status:'idle',phases:{},result:null};render();}
+async function startScan({ingested=false}={}){
+ if(S.scan.status==='running')return;
+ if(!S.files.length){toast('Load files first.');return;}
+ const scanId='scan-'+Date.now(),opts={...S.scanOptions};
+ S.scan={status:'running',scanId,phases:{ingest:ingested?'done':'running'},label:'Preparing project',startedAt:ingested&&S.scan.startedAt?S.scan.startedAt:Date.now(),result:null,error:null};
+ S.selectedFindingId=null;S.findingPage=1;S.inventoryPage=1;S.scanTab='summary';S.view='scan';location.hash='scan';render();
+ let stage='Ingestion';
+ try{
+  const extra=S.project?S.project.manifest.filter(m=>m.status!=='ingested'):[];
+  const ing=await rpc({type:'ingest',texts:S.files.map(f=>({path:f.path,content:f.content,language:f.language,kind:f.kind})),manifestExtra:extra});
+  const project={...ing.project,name:S.project?.name||'Editor workspace',source:S.project?.source||'editor workspace',limits:S.project?.limits||[],caseCollisions:S.project?.caseCollisions||[],archive:S.project?.archive||null};
+  S.scan.phases.ingest='done';stage='Static analysis';
+  const hasPython=project.files.some(f=>f.language==='python');
+  const scanned=await rpc({type:'scan',scanId,project,policy:S.policy,runtimeOptions:{enableJs:opts.js,enablePython:opts.python&&hasPython}},updateProgress);
+  for(const k of ['files','typecheck','integration'])S.scan.phases[k]=S.scan.phases[k]==='running'||S.scan.phases[k]==='done'?'done':'skipped';
+  S.scan.result=scanned.scan;S.dirtyAfterScan=new Set();render();
+  let results=[],blocked=[],cancelled=false;
+  if(scanned.runtime&&scanned.runtime.jobs.length){
+   stage='Runtime checks';S.scan.phases.runtime='running';S.scan.label='Running sandboxed tests and generated inputs';render();
+   activeRuntime=new ProjectRuntime({budgetMs:opts.budgetMs});
+   const out=await activeRuntime.run(scanned.runtime,{onProgress:p=>updateProgress({...p,phase:'runtime'})});
+   results=out.results;blocked=out.blocked;cancelled=out.cancelled;
+   S.scan.phases.runtime=cancelled?'cancelled':'done';
+  }else S.scan.phases.runtime='skipped';
+  stage='Finalize';S.scan.phases.finalize='running';
+  const fin=await rpc({type:'finalize',scanId,results,blocked,cancelled,enabled:Boolean(scanned.runtime)});
+  S.scan.result=fin.scan;S.scan.phases.finalize='done';
+  S.scan.status=cancelled?'cancelled':'complete';S.scan.finishedAt=Date.now();
+  S.scan.label=cancelled?'Cancelled during runtime checks; results so far are shown and marked incomplete.':'Scan complete';
+  toast(cancelled?'Scan cancelled; partial results kept.':`Scan complete: ${fmt(fin.scan.findings.length)} findings.`);
+ }catch(e){
+  const aborted=e.name==='AbortError';
+  S.scan.status=aborted?'cancelled':'failed';S.scan.finishedAt=Date.now();
+  S.scan.label=aborted?'Scan cancelled; static analysis was stopped.':'Scan failed';
+  if(!aborted)S.scan.error={stage,message:e.message,action:stage==='Runtime checks'?'Static results remain valid; rerun, or disable runtime checks.':'Retry; very large inputs may exceed this browser\'s memory.'};
+  for(const k of Object.keys(S.scan.phases))if(S.scan.phases[k]==='running')S.scan.phases[k]=aborted?'cancelled':'failed';
+ }finally{activeRuntime=null;render();}
+}
+function cancelScan(){
+ if(S.scan.status!=='running')return;
+ if(activeRuntime){activeRuntime.cancel();toast('Stopping sandbox jobs…');return;}
+ restartWorker('Scan cancelled by user');
+}
+function scanSummaryText(){
+ const r=S.scan.result;if(!r)return '';
+ const c=r.coverage,f=c.findings.byVerification;
+ return `CodeProof scan of ${r.project.name}: ${c.verdict.message} Findings — reproduced: ${f['confirmed-runtime']||0}, confirmed static: ${f['confirmed-static']||0}, high-confidence: ${f['high-confidence']||0}, potential: ${f.potential||0}, security observations: ${f['security-observation']||0}. ${c.ratios.map(x=>`${x.label}: ${x.numerator}/${x.denominator}`).join('; ')}.`;
+}
+function selectEditorLine(line){
+ const editor=document.getElementById('code-editor');if(!editor||!line)return;
+ const rows=editor.value.split('\n');const start=rows.slice(0,line-1).reduce((n,r)=>n+r.length+1,0);
+ editor.focus();editor.setSelectionRange(start,start+(rows[line-1]||'').length);editor.scrollTop=Math.max(0,(line-6)*20);updateGutter(editor);
 }
 async function exportWorkspace(){const JSZip=await loadZipLib(),zip=new JSZip();for(const f of S.files)zip.file(f.path,f.content);downloadBinary('codeproof-reviewed-source.zip',await zip.generateAsync({type:'blob',compression:'DEFLATE'}));}
-const integrateWorkflow=`name: CodeProof source policy\non:\n  pull_request:\n  workflow_dispatch:\npermissions:\n  contents: read\njobs:\n  codeproof:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: '22'\n      - name: Inspect code without executing it\n        run: node .codeproof/cli.mjs\n      - name: Upload evidence artifact\n        uses: actions/upload-artifact@v4\n        if: always()\n        with:\n          name: codeproof-evidence\n          path: codeproof-report.json\n          if-no-files-found: ignore\n`;
+const integrateWorkflow=`name: CodeProof static audit\non:\n  pull_request:\n  workflow_dispatch:\npermissions:\n  contents: read\njobs:\n  codeproof:\n    runs-on: ubuntu-latest\n    timeout-minutes: 15\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0\n        with:\n          node-version: '22'\n      - name: Inspect code without executing it\n        run: node .codeproof/cli.mjs\n      - name: Upload evidence artifact\n        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2\n        if: always()\n        with:\n          name: codeproof-evidence\n          path: codeproof-report.json\n          if-no-files-found: ignore\n`;
+const ENGINE_MODULES=['util','paths','detect','ingest','zip','findings','text-rules','estree','js-rules','python','generic','catalog','config','ts-program','graph','capabilities','coverage','authorship','testgen','runtime-plan','transpile','scan','report','index'];
 async function downloadIntegration(){
- const [JSZip,cli,core,parser,compiler]=await Promise.all([loadZipLib(),fetch('./integrations/cli.mjs').then(r=>r.text()),fetch('./integrations/core.mjs').then(r=>r.text()),fetch('./integrations/acorn.mjs').then(r=>r.text()),fetch('./integrations/typescript.cjs').then(r=>r.arrayBuffer())]);
- const zip=new JSZip();zip.file('.codeproof/cli.mjs',cli);zip.file('.codeproof/core.mjs',core);zip.file('.codeproof/acorn.mjs',parser);zip.file('.codeproof/typescript.cjs',compiler);zip.file('.codeproof-policy.json',JSON.stringify(S.policy,null,2));zip.file('.github/workflows/codeproof.yml',integrateWorkflow);zip.file('CODEPROOF-INTEGRATION.md','CodeProof PR integration\n\nCopy all files into the root of your repository and commit. The audit is static only; it does not run user code. Adjust .codeproof-policy.json to your standards. The CLI needs Node 22+ and no npm install.\n');downloadBinary('codeproof-github-integration.zip',await zip.generateAsync({type:'blob',compression:'DEFLATE'}));
+ const text=url=>fetch(url).then(r=>{if(!r.ok)throw Error(`${url}: HTTP ${r.status}`);return r.text();});
+ const [JSZip,cli,parser,compiler,libList]=await Promise.all([loadZipLib(),text('./integrations/cli.mjs'),text('./assets/acorn.mjs'),fetch('./vendor/typescript.js').then(r=>{if(!r.ok)throw Error('TypeScript compiler asset missing');return r.arrayBuffer();}),fetch('./vendor/typescript-lib/files.json').then(r=>r.ok?r.json():[])]);
+ const zip=new JSZip();
+ zip.file('.codeproof/cli.mjs',cli);zip.file('.codeproof/acorn.mjs',parser);zip.file('.codeproof/typescript.cjs',compiler);
+ for(const name of ENGINE_MODULES)zip.file(`.codeproof/engine/${name}.mjs`,await text(`./assets/engine/${name}.mjs`));
+ for(const name of libList)zip.file(`.codeproof/typescript-lib/${name}`,await text(`./vendor/typescript-lib/${name}`));
+ zip.file('.codeproof-policy.json',JSON.stringify(S.policy,null,2));zip.file('.github/workflows/codeproof.yml',integrateWorkflow);
+ zip.file('CODEPROOF-INTEGRATION.md',`CodeProof PR integration\n\nCopy all files into the root of your repository and commit. The audit is static only: it parses, type-checks and analyzes cross-file integration, and never runs repository code. Adjust .codeproof-policy.json to your standards. The CLI needs Node 22+ and no npm install.\n${libList.length?'':'\\nNote: TypeScript lib declarations were not available on this deployment, so the kit cannot type-check; parsing and integration checks still run.\\n'}`);
+ downloadBinary('codeproof-github-integration.zip',await zip.generateAsync({type:'blob',compression:'DEFLATE'}));
 }
 
 async function handleAction(action,element){
  switch(action){
  case'navigate':S.view=element.dataset.view;location.hash=S.view;render();break;
  case'go-inspector':S.view='inspector';location.hash='inspector';render();break;
+ case'go-scan':S.view='scan';location.hash='scan';render();break;
+ case'go-authorship':S.view='authorship';location.hash='authorship';render();break;
+ case'start-scan':await startScan();break;
+ case'cancel-scan':cancelScan();break;
+ case'scan-workspace':S.project=S.project||null;await startScan();break;
+ case'scan-tab':S.scanTab=element.dataset.tab;S.findingPage=1;S.inventoryPage=1;render();document.getElementById('tab-'+S.scanTab)?.focus();break;
+ case'scan-tab-report':S.scanTab='report';render();break;
+ case'select-finding':{S.selectedFindingId=element.dataset.id;if(!['findings','integration','security'].includes(S.scanTab))S.scanTab='findings';const f=S.scan.result?.findings.find(x=>x.id===S.selectedFindingId);if(f&&S.scanTab==='findings'&&!filterMatches(f)){S.findingFilters={severity:'all',category:'all',verification:'all',file:'all',analyzer:'all',search:''};}render();document.getElementById('fd-title')?.focus();break;}
+ case'open-scan-finding':S.view='scan';location.hash='scan';S.scanTab='findings';S.selectedFindingId=element.dataset.id;S.findingFilters={severity:'all',category:'all',verification:'all',file:'all',analyzer:'all',search:''};render();break;
+ case'findings-more':S.findingPage++;render();break;
+ case'inventory-more':S.inventoryPage++;render();break;
+ case'tree-file':S.findingFilters={...S.findingFilters,file:element.dataset.path};S.scanTab='findings';S.findingPage=1;render();break;
+ case'open-in-editor':{const path=element.dataset.path,line=Number(element.dataset.line)||1;if(!S.files.some(f=>f.path===path)){toast('That file is not in the editor workspace.');break;}S.active=path;S.view='inspector';location.hash='inspector';render();setTimeout(()=>selectEditorLine(line),30);break;}
+ case'copy-finding':{const f=S.scan.result?.findings.find(x=>x.id===element.dataset.id);if(f)copyText(`${f.id} ${f.title}\n${f.file||'project'}${f.line?':'+f.line:''}\nVerification: ${f.verificationLabel}\nCause: ${f.rootCause}\n${f.trigger?'Trigger: '+f.trigger+'\n':''}${(f.reproduction||[]).map((r,i)=>`${i+1}. ${r}`).join('\n')}${f.actual?'\nActual: '+f.actual:''}${f.expected?'\nExpected: '+f.expected:''}`);break;}
+ case'export-scan-json':if(S.scan.result)downloadText(`codeproof-scan-${slug(S.scan.result.project.name)}.json`,JSON.stringify(buildReport(S.scan.result),null,2),'application/json');break;
+ case'export-scan-md':if(S.scan.result)downloadText(`codeproof-scan-${slug(S.scan.result.project.name)}.md`,reportMarkdown(S.scan.result),'text/markdown');break;
+ case'export-scan-sarif':if(S.scan.result)downloadText(`codeproof-scan-${slug(S.scan.result.project.name)}.sarif`,JSON.stringify(reportSarif(S.scan.result),null,2),'application/sarif+json');break;
+ case'copy-scan-summary':copyText(scanSummaryText());break;
  case'go-projects':S.view='projects';location.hash='projects';render();break;
  case'go-runner':S.view='runner';location.hash='runner';render();break;
  case'go-evidence':S.view='evidence';location.hash='evidence';render();break;
@@ -234,8 +399,8 @@ async function handleAction(action,element){
  case'new-file':S.modal='new-file';render();break;
  case'close-modal':S.modal='';render();break;
  case'create-file':{
-  const path=document.getElementById('new-file-path')?.value.trim().replaceAll('\\','/');
-  if(!path||!acceptedPath(path,S.policy)){toast('Use a safe .js, .ts, .jsx, .tsx, or .py path.','error');break;}
+  const norm=normalizePath(document.getElementById('new-file-path')?.value.trim()||'');const path=norm.ok?norm.path:'';
+  if(!path||!acceptedPath(path,S.policy)){toast('Use a safe relative path with a supported source extension (.js, .ts, .py, …).','error');break;}
   if(S.files.some(f=>f.path===path)){toast('This file already exists.','error');break;}
   S.files.push({path,language:languageFromPath(path),content:languageFromPath(path)==='python'?'def hello(name):\n    return "Hello, " + name\n':(['javascript','typescript'].includes(languageFromPath(path))?'function hello(name) {\n  return "Hello, " + name;\n}\n':'// Source code here\n')});
   S.active=path;S.modal='';markModified();render();break;
@@ -250,7 +415,7 @@ async function handleAction(action,element){
   S.timeoutMs=Number(document.getElementById('timeout-select')?.value||1800);
   const test={id:'manual:'+Date.now(),title:'Manual execution: '+func,file:file.path,functionName:func,args,kind:'smoke',source:'user'};
   S.busy=true;render();
-  try{if(file.language!=='python')await loadCompiler();S.manual=await runner.runOne(file,test,S.timeoutMs,transpile);S.results.push(S.manual);S.resultsStale=false;}
+  try{S.manual=await runner.runOne(file,test,S.timeoutMs,transpile);S.results.push(S.manual);S.resultsStale=false;}
   catch(e){toast('Execution error: '+e.message,'error');}
   finally{S.busy=false;render();}break;
  }
@@ -277,10 +442,9 @@ async function handleAction(action,element){
   const previous=structuredClone(S.files);const relevant=S.tests.filter(t=>t.file===patch.file);S.busy=true;render();
   let before=[],after=[];
   try{
-    if(relevant.length&&S.files.some(f=>f.language!=='python'))await loadCompiler();
-    if(relevant.length)before=await runner.runAll(previous,relevant,S.timeoutMs,transpile);
+    if(relevant.length)before=await runner.runAll(previous,relevant,S.timeoutMs,()=>transpileFor(previous));
     const updated=applyPatch(previous,patch);
-    if(relevant.length)after=await runner.runAll(updated,relevant,S.timeoutMs,transpile);
+    if(relevant.length)after=await runner.runAll(updated,relevant,S.timeoutMs,()=>transpileFor(updated));
     const regressions=after.filter((t,i)=>before[i]?.status==='passed'&&t.status!=='passed').length;
     const improved=after.filter((t,i)=>before[i]?.status!=='passed'&&t.status==='passed').length;
     if(regressions){S.patchReport={heading:'Patch automatically rolled back',description:`${regressions} previously passing test(s) regressed. Original source retained.`,regressions,executed:relevant.length,beforePass:before.filter(x=>x.status==='passed').length,afterPass:after.filter(x=>x.status==='passed').length};}
@@ -323,6 +487,13 @@ root.addEventListener('input',event=>{
 });
 root.addEventListener('scroll',event=>{if(event.target.id==='code-editor')updateGutter(event.target);},true);
 root.addEventListener('keydown',event=>{
+ // Arrow-key navigation inside tab lists (WAI-ARIA tabs pattern).
+ if(event.target.getAttribute?.('role')==='tab'&&['ArrowRight','ArrowLeft','Home','End'].includes(event.key)){
+  event.preventDefault();const ids=SCAN_TABS.map(t=>t[0]);let i=ids.indexOf(S.scanTab);
+  i=event.key==='Home'?0:event.key==='End'?ids.length-1:(i+(event.key==='ArrowRight'?1:-1)+ids.length)%ids.length;
+  handleAction('scan-tab',{dataset:{tab:ids[i]}});return;
+ }
+ if((event.key==='Enter'||event.key===' ')&&event.target.getAttribute?.('role')==='button'&&event.target.dataset?.action&&event.target.tagName!=='BUTTON'){event.preventDefault();handleAction(event.target.dataset.action,event.target).catch(e=>toast('Action failed: '+e.message,'error'));return;}
  if(event.target.id==='code-editor'&&event.key==='Tab'){
   event.preventDefault();const e=event.target,s=e.selectionStart; e.setRangeText('  ',s,e.selectionEnd,'end');e.dispatchEvent(new Event('input',{bubbles:true}));
  }
@@ -336,6 +507,11 @@ root.addEventListener('keydown',event=>{
 });
 root.addEventListener('change',async event=>{
  const target=event.target;
+ if(target.dataset?.filter&&target.tagName==='SELECT'){S.findingFilters={...S.findingFilters,[target.dataset.filter]:target.value};S.findingPage=1;render();return;}
+ if(target.id==='inventory-filter'){S.inventoryFilter=target.value;S.inventoryPage=1;render();return;}
+ if(target.id==='opt-js'){S.scanOptions.js=target.checked;return;}
+ if(target.id==='opt-python'){S.scanOptions.python=target.checked;return;}
+ if(target.id==='persist-toggle'){S.persist=target.checked;if(S.persist){persist();toast('Editor workspace will be kept in this browser.');}else{clearStoredWorkspace();toast('Stored workspace deleted from this browser.');}render();return;}
  if(target.id==='severity-filter'){S.filter=target.value;render();}
  if(target.id==='test-filter'){S.testFilter=target.value;render();}
  if(target.id==='run-function')S.runFn=target.value;
@@ -346,13 +522,15 @@ root.addEventListener('change',async event=>{
   for(const [id,value] of draft){const el=document.getElementById(id);if(el&&value!=null)el.value=value;}
  }
  if(target.id==='timeout-select'){S.timeoutMs=Number(target.value);}
- if(['zip-picker','folder-picker','files-picker'].includes(target.id)&&target.files?.length){try{if(target.id==='zip-picker')await importArchive(target.files[0]);else await importFiles(target.files);}catch(e){toast('Import failed: '+e.message,'error');}target.value='';}
+ if(['zip-picker','folder-picker','files-picker'].includes(target.id)&&target.files?.length){const list=Array.from(target.files);target.value='';try{if(target.id==='zip-picker'||(list.length===1&&/\.zip$/i.test(list[0].name)))await importArchive(list[0]);else await importFiles(list,target.id==='folder-picker'?'folder':'files');}catch(e){S.ingestError={title:'Import failed',message:e.message};toast('Import failed: '+e.message,'error');render();}}
 });
+let filterTimer=null;
+root.addEventListener('input',event=>{if(event.target.dataset?.filter==='search'){clearTimeout(filterTimer);const value=event.target.value;filterTimer=setTimeout(()=>{S.findingFilters={...S.findingFilters,search:value};S.findingPage=1;render();},220);}});
 root.addEventListener('input',event=>{if(event.target.id==='finding-search'){S.search=event.target.value;const list=document.getElementById('finding-list');if(list){const current=S.analysis.findings.filter(f=>f.file===S.active).filter(f=>(S.filter==='all'||f.severity===S.filter)&&(`${f.title} ${f.message} ${f.rule}`.toLowerCase().includes(S.search.toLowerCase())));list.innerHTML=current.map(issueCard).join('')||placeholder('No findings match','Change the search or filter.','search');}}});
 window.addEventListener('hashchange',()=>{const hash=location.hash.slice(1);if(NAV.some(([id])=>id===hash)&&S.view!==hash){S.view=hash;render();}});
-window.addEventListener('beforeunload',()=>runner.dispose());
+window.addEventListener('beforeunload',()=>{runner.dispose();activeRuntime?.cancel();});
 render();
 const drop=()=>document.getElementById('drop-zone');
 root.addEventListener('dragover',e=>{if(e.target.closest('#drop-zone')){e.preventDefault();drop()?.classList.add('drag');}});
 root.addEventListener('dragleave',e=>{if(e.target.closest('#drop-zone'))drop()?.classList.remove('drag');});
-root.addEventListener('drop',async e=>{if(!e.target.closest('#drop-zone'))return;e.preventDefault();drop()?.classList.remove('drag');const files=Array.from(e.dataTransfer?.files||[]);try{if(files.length===1&&files[0].name.endsWith('.zip'))await importArchive(files[0]);else await importFiles(files);}catch(err){toast('Drop import: '+err.message,'error');}});
+root.addEventListener('drop',async e=>{if(!e.target.closest('#drop-zone'))return;e.preventDefault();drop()?.classList.remove('drag');try{const entries=await filesFromDrop(e.dataTransfer);if(entries.length===1&&/\.zip$/i.test(entries[0].path))await importArchive(entries[0].file);else{entries.forEach(x=>{if(x.file)x.file.relativePath=x.path;});const roots=new Set(entries.map(x=>x.path.split('/')[0]));await ingestProject({type:'ingest',entries:entries.map(x=>({path:x.path,file:x.file,size:x.size,isDirectory:x.isDirectory})),policy:S.policy,source:'drag and drop',name:roots.size===1&&entries[0]?.path.includes('/')?[...roots][0]:undefined},`Reading ${fmt(entries.length)} dropped files`);}}catch(err){S.ingestError={title:'Drop import failed',message:err.message};toast('Drop import: '+err.message,'error');render();}});
