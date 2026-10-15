@@ -5,3 +5,7 @@ node_modules/
 # Reconstructed from the tracked, checksum-verified upstream source parts by CI.
 docs/vendor/typescript.js
 docs/integrations/typescript.cjs
+docs/vendor/typescript.mjs
+# Restored from pinned, integrity-checked npm tarballs by scripts/fetch-pinned-assets.mjs.
+docs/vendor/typescript-lib/
+docs/vendor/pyodide/
