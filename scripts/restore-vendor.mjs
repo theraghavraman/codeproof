@@ -18,3 +18,8 @@ for (const path of ['docs/vendor/typescript.js', 'docs/integrations/typescript.c
   await writeFile(path, bytes);
   console.log(`Restored ${path} (${bytes.length} bytes; SHA-256 ${actual})`);
 }
+// ES-module view of the same verified bytes for the analysis worker: the bundle declares `var ts`, so a
+// fixed export suffix is enough and no eval/new Function is needed to load the compiler in the browser.
+const esm = Buffer.concat([bytes, Buffer.from('\nexport default ts;\n', 'utf8')]);
+await writeFile('docs/vendor/typescript.mjs', esm);
+console.log(`Derived docs/vendor/typescript.mjs (verified source + "export default ts")`);
