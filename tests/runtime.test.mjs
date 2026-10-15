@@ -34,9 +34,13 @@ test('sandbox iframe has opaque-origin policy and explicitly denied JS networkin
  assert.match(h,/connect-src 'none'/);assert.match(h,/worker-src blob:/);
  assert.doesNotMatch(h,/allow-same-origin/);
 });
-test('python worker uses pinned Pyodide CDN; no native subprocess runner',()=>{
+test('python runtime is served from this site with pinned digests; no CDN, no network, no native subprocess runner',async()=>{
  const h=sandboxContract.makeSandboxHtml('python','s1');
- assert.match(h,/cdn.jsdelivr.net/);assert.match(sandboxContract.pyWorkerSource,/pyodide\.js/);
+ assert.match(h,/connect-src 'none'/);assert.doesNotMatch(h,/cdn\.jsdelivr\.net|https?:\/\//);
+ assert.doesNotMatch(sandboxContract.pyWorkerSource,/cdn\.jsdelivr\.net/);assert.match(sandboxContract.pyWorkerSource,/pyodide\.js/);
+ const {PYODIDE_FILES}=await import('../docs/assets/runtime/pinned-pyodide.mjs');
+ assert.deepEqual(Object.keys(PYODIDE_FILES).sort(),['pyodide-lock.json','pyodide.asm.js','pyodide.asm.wasm','pyodide.js','python_stdlib.zip']);
+ for(const pin of Object.values(PYODIDE_FILES))assert.match(pin.sha256,/^[0-9a-f]{64}$/);
 });
 test('iframe bootstrap JavaScript parses for both sandboxes',()=>{
  for(const type of ['javascript','python']){
