@@ -28,6 +28,8 @@ jobs:
           node-version: '22'
       - name: Restore verified TypeScript compiler assets
         run: node scripts/restore-vendor.mjs
+      - name: Restore pinned TypeScript lib files and Pyodide runtime
+        run: node scripts/fetch-pinned-assets.mjs
       - name: Run tests
         run: node --test tests/*.test.mjs
       - name: Verify repository static audit baseline
