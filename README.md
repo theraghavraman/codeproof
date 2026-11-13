@@ -34,14 +34,22 @@ git clone https://github.com/theraghavraman/codeproof.git
 ```
 
 ```bash
-node codeproof/scripts/restore-vendor.mjs
+cd codeproof
 ```
 
 ```bash
-python3 -m http.server 8000 --directory codeproof/docs
+node scripts/restore-vendor.mjs
 ```
 
-Then open `http://localhost:8000`. The second command rebuilds the bundled TypeScript compiler from its verified parts. To run the tests and audits, see [Verify locally](#verify-locally).
+```bash
+node scripts/fetch-pinned-assets.mjs
+```
+
+```bash
+python3 -m http.server 8000 --directory docs
+```
+
+Then open `http://localhost:8000`. The two `node` commands rebuild the bundled TypeScript compiler from its verified parts and restore the pinned TypeScript lib files and Pyodide runtime from npm, checking every hash. Without the second one, type checking and Python execution have nothing to load. To run the tests and audits, see [Verify locally](#verify-locally).
 
 ---
 
@@ -62,6 +70,7 @@ Use Node.js 22 or newer:
 
 ```bash
 node scripts/restore-vendor.mjs
+node scripts/fetch-pinned-assets.mjs
 node --test tests/*.test.mjs
 node docs/integrations/cli.mjs
 node scripts/generate-sbom.mjs --check
