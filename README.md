@@ -1,5 +1,50 @@
 # CodeProof — Browser-First Code Verification Lab
 
+**Checking unfamiliar code usually means uploading it to a service or installing a toolchain; CodeProof inspects, type-checks and test-runs it entirely in your browser tab.**
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Pasted code, files or a source ZIP] --> B[Analysis worker]
+    B --> C[Ingest + language detection]
+    C --> D[Static rules: JS/TS, Python, text]
+    C --> E[TypeScript type check + transpile]
+    C --> F[Import graph]
+    E --> G[Sandboxed iframe: runs JS/TS tests]
+    C -. on demand .-> H[Pinned Pyodide: Python grammar + execution]
+    D --> I[Report]
+    F --> I
+    G --> I
+    H --> I
+    I --> J[JSON / Markdown evidence + Team and CI kit]
+    K[CI: SBOM + supply-chain audit] -. verifies bundled compiler .-> B
+```
+
+Uploaded code is never executed in the analysis worker; execution happens only in the sandboxed frame. Nothing is sent to a server.
+
+## Quickstart
+
+No install: open the [live site](https://theraghavraman.github.io/codeproof/).
+
+Locally, with Node.js 22 or newer and Python 3. There is no `npm install`:
+
+```bash
+git clone https://github.com/theraghavraman/codeproof.git
+```
+
+```bash
+node codeproof/scripts/restore-vendor.mjs
+```
+
+```bash
+python3 -m http.server 8000 --directory codeproof/docs
+```
+
+Then open `http://localhost:8000`. The second command rebuilds the bundled TypeScript compiler from its verified parts. To run the tests and audits, see [Verify locally](#verify-locally).
+
+---
+
 [![Verification and supply-chain audit](https://github.com/theraghavraman/codeproof/actions/workflows/checks.yml/badge.svg)](https://github.com/theraghavraman/codeproof/actions/workflows/checks.yml) [![Deploy to GitHub Pages](https://github.com/theraghavraman/codeproof/actions/workflows/pages.yml/badge.svg)](https://github.com/theraghavraman/codeproof/actions/workflows/pages.yml)
 
 > **[Open the live CodeProof website](https://theraghavraman.github.io/codeproof/)** — use this link to run the app. The `docs/index.html` link below is the source file in GitHub, not the interactive website.
