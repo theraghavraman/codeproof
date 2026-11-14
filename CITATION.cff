@@ -1,6 +1,7 @@
 cff-version: 1.2.0
 message: "If you use CodeProof in research or software development, please cite this release."
 type: software
+version: "2.0.0"
 title: "CodeProof: Browser-First Code Verification Lab"
 authors:
   - family-names: Raman
